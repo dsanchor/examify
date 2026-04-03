@@ -63,7 +63,7 @@ function padOptions(question: Question, targetCount: number = 4): ExamQuestion {
 
 class ExamService {
   async create(examConfig: ExamConfig): Promise<Exam> {
-    const { sourceIds, chapterIds, questionCount, answerCount = 4, title, description } = examConfig;
+    const { sourceIds, chapterIds, questionCount, answerCount = 3, title, description } = examConfig;
 
     // Collect all eligible questions from specified sources and chapters
     const allQuestions: { question: Question; sourceId: string }[] = [];

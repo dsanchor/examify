@@ -11,7 +11,7 @@ export default function ExamCreate() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [questionCount, setQuestionCount] = useState(20);
-  const [answerCount, setAnswerCount] = useState(4);
+  const [answerCount, setAnswerCount] = useState(3);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [creatingDryRun, setCreatingDryRun] = useState(false);

@@ -68,7 +68,7 @@ export const createExamSchema = Joi.object({
   sourceIds: Joi.array().items(Joi.string().uuid()).min(1).required(),
   chapterIds: Joi.array().items(Joi.string().uuid()).optional(),
   questionCount: Joi.number().integer().min(1).max(200).required(),
-  answerCount: Joi.number().integer().min(2).max(6).default(4),
+  answerCount: Joi.number().integer().min(2).max(6).default(3),
 });
 
 // Test schemas

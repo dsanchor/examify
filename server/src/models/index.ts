@@ -31,7 +31,7 @@ export interface ExamConfig {
   sourceIds: string[];
   chapterIds?: string[];
   questionCount: number;
-  answerCount?: number; // Number of answer options per question (2-6, default: 4)
+  answerCount?: number; // Number of answer options per question (2-6, default: 3)
   title: string;
   description?: string;
 }
