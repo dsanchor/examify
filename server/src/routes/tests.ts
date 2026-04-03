@@ -66,6 +66,12 @@ router.post(
   }
 );
 
+// DELETE /api/tests/:id - Delete a test session
+router.delete('/:id', validateParams(idParamSchema), async (req: Request, res: Response) => {
+  await testService.deleteSession(req.params.id);
+  res.status(204).send();
+});
+
 // POST /api/tests/:id/abandon - Abandon a test
 router.post(
   '/:id/abandon',

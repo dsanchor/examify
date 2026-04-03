@@ -9,6 +9,7 @@ import type {
   PaginatedResponse,
   AvailableSource,
   Question,
+  Chapter,
 } from '../types';
 
 const api = axios.create({
@@ -55,6 +56,31 @@ export const sourcesApi = {
 
   deleteQuestion: async (sourceId: string, questionId: string): Promise<void> => {
     await api.delete(`/sources/${sourceId}/questions/${questionId}`);
+  },
+};
+
+// Chapters
+export const chaptersApi = {
+  add: async (sourceId: string, title: string): Promise<Chapter> => {
+    const { data } = await api.post(`/sources/${sourceId}/chapters`, { title });
+    return data;
+  },
+
+  update: async (sourceId: string, chapterId: string, updates: { title?: string; order?: number }): Promise<Chapter> => {
+    const { data } = await api.put(`/sources/${sourceId}/chapters/${chapterId}`, updates);
+    return data;
+  },
+
+  delete: async (sourceId: string, chapterId: string): Promise<void> => {
+    await api.delete(`/sources/${sourceId}/chapters/${chapterId}`);
+  },
+};
+
+// Questions
+export const questionsApi = {
+  linkChapter: async (sourceId: string, questionId: string, chapterId: string | null): Promise<Question> => {
+    const { data } = await api.put(`/sources/${sourceId}/questions/${questionId}/chapter`, { chapterId });
+    return data;
   },
 };
 
@@ -119,6 +145,10 @@ export const testsApi = {
 
   abandon: async (sessionId: string): Promise<void> => {
     await api.post(`/tests/${sessionId}/abandon`);
+  },
+
+  delete: async (sessionId: string): Promise<void> => {
+    await api.delete(`/tests/${sessionId}`);
   },
 };
 

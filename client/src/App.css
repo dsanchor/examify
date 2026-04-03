@@ -587,6 +587,172 @@ body {
   gap: 0.5rem;
 }
 
+/* ===== Chapter Management ===== */
+.chapter-mgmt-section {
+  margin-bottom: 2rem;
+}
+
+.chapter-mgmt-section h2 {
+  margin-bottom: 1rem;
+}
+
+.chapter-add-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  align-items: center;
+}
+
+.chapter-add-input {
+  flex: 1;
+  max-width: 400px;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.chapter-add-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.chapter-empty {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  padding: 1rem 0;
+}
+
+.chapter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.chapter-mgmt-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.65rem 1rem;
+}
+
+.chapter-display-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.chapter-order {
+  font-weight: 700;
+  color: var(--primary);
+  min-width: 1.5rem;
+}
+
+.chapter-title {
+  flex: 1;
+  font-weight: 500;
+}
+
+.chapter-actions {
+  display: flex;
+  gap: 0.35rem;
+  margin-left: auto;
+}
+
+.chapter-edit-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.chapter-edit-input {
+  flex: 1;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+/* ===== Questions Section with Filter ===== */
+.questions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.chapter-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.chapter-filter label {
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.chapter-filter-select {
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  font-family: inherit;
+  background: var(--surface);
+  min-width: 140px;
+}
+
+.generate-questions-bar {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.question-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.question-top-row .question-text {
+  flex: 1;
+}
+
+.chapter-select {
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.8rem;
+  font-family: inherit;
+  background: var(--surface);
+  min-width: 120px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.chapter-select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.question-chapter-badge {
+  margin-bottom: 0.5rem;
+  display: inline-block;
+}
+
 .chapters-section h2 {
   margin-bottom: 1rem;
 }
@@ -1159,6 +1325,67 @@ body {
 
   .radio-label {
     padding: 0.75rem;
+  }
+
+  /* Chapter management mobile */
+  .chapter-add-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .chapter-add-input {
+    max-width: 100%;
+  }
+
+  .chapter-display-row {
+    flex-wrap: wrap;
+  }
+
+  .chapter-actions {
+    width: 100%;
+    margin-left: 0;
+    margin-top: 0.35rem;
+  }
+
+  .chapter-actions .btn {
+    flex: 1;
+  }
+
+  .chapter-edit-row {
+    flex-wrap: wrap;
+  }
+
+  .chapter-edit-input {
+    width: 100%;
+  }
+
+  .questions-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .chapter-filter {
+    width: 100%;
+  }
+
+  .chapter-filter-select {
+    flex: 1;
+  }
+
+  .question-top-row {
+    flex-direction: column;
+  }
+
+  .chapter-select {
+    width: 100%;
+  }
+
+  .generate-questions-bar {
+    flex-direction: column;
+  }
+
+  .generate-questions-bar .btn {
+    width: 100%;
   }
 }
 

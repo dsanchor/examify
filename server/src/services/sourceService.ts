@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import pdfParse from 'pdf-parse';
 import { cosmosService } from './cosmosService';
 import { aiService } from './aiService';
-import { Source, PaginatedResponse, Question } from '../models';
+import { Source, PaginatedResponse, Question, Chapter } from '../models';
 import { config } from '../config';
 
 const CONTAINER = config.cosmos.containers.sources;
@@ -74,19 +74,18 @@ class SourceService {
         (await cosmosService.read<Source>(CONTAINER, id))?.fileName ?? 'unknown.pdf'
       );
       console.log('[SOURCE_SERVICE_DEBUG] ✓ AI extraction complete');
-      console.log('[SOURCE_SERVICE_DEBUG] Chapters extracted:', extractionResult.chapters.length);
       console.log('[SOURCE_SERVICE_DEBUG] Questions extracted:', extractionResult.questions.length);
 
       console.log('[SOURCE_SERVICE_DEBUG] Updating source in CosmosDB with results...');
       await cosmosService.update<Source>(CONTAINER, id, {
-        chapters: extractionResult.chapters,
+        chapters: [],
         questions: extractionResult.questions,
         status: 'ready',
         updatedAt: new Date().toISOString(),
       });
 
       console.log(
-        `[SOURCE_SERVICE_DEBUG] ✓ Source ${id} processed: ${extractionResult.chapters.length} chapters, ${extractionResult.questions.length} questions`
+        `[SOURCE_SERVICE_DEBUG] ✓ Source ${id} processed: ${extractionResult.questions.length} questions`
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown processing error';
@@ -136,10 +135,9 @@ class SourceService {
     await cosmosService.delete(CONTAINER, id);
   }
 
-  async addQuestions(sourceId: string, chapterId: string, count: number): Promise<Question[]> {
+  async addQuestions(sourceId: string, count: number): Promise<Question[]> {
     console.log('[SOURCE_SERVICE_DEBUG] Adding questions to source');
     console.log('[SOURCE_SERVICE_DEBUG] Source ID:', sourceId);
-    console.log('[SOURCE_SERVICE_DEBUG] Chapter ID:', chapterId);
     console.log('[SOURCE_SERVICE_DEBUG] Count:', count);
 
     const source = await this.getById(sourceId);
@@ -147,21 +145,13 @@ class SourceService {
       throw new Error('Source not found');
     }
 
-    const chapter = source.chapters.find((ch) => ch.id === chapterId);
-    if (!chapter) {
-      throw new Error('Chapter not found');
-    }
+    const existingQuestions = source.questions.map((q) => q.text);
 
-    const existingQuestions = source.questions
-      .filter((q) => q.chapterId === chapterId)
-      .map((q) => q.text);
-    
-    console.log('[SOURCE_SERVICE_DEBUG] Existing questions for chapter:', existingQuestions.length);
+    console.log('[SOURCE_SERVICE_DEBUG] Existing questions:', existingQuestions.length);
     console.log('[SOURCE_SERVICE_DEBUG] Calling AI service...');
 
     const newQuestionData = await aiService.generateAdditionalQuestions(
-      chapter.content,
-      chapter.title,
+      source.title,
       existingQuestions,
       count
     );
@@ -170,7 +160,6 @@ class SourceService {
 
     const newQuestions: Question[] = newQuestionData.map((q) => ({
       id: uuidv4(),
-      chapterId,
       ...q,
     }));
 
@@ -184,6 +173,116 @@ class SourceService {
     console.log('[SOURCE_SERVICE_DEBUG] ✓ Source updated successfully');
 
     return newQuestions;
+  }
+
+  async addChapter(sourceId: string, title: string): Promise<Chapter> {
+    const source = await this.getById(sourceId);
+    if (!source) {
+      throw new Error('Source not found');
+    }
+
+    const maxOrder = source.chapters.reduce((max, ch) => Math.max(max, ch.order), 0);
+    const chapter: Chapter = {
+      id: uuidv4(),
+      title,
+      order: maxOrder + 1,
+    };
+
+    const updatedChapters = [...source.chapters, chapter];
+    await cosmosService.update<Source>(CONTAINER, sourceId, {
+      chapters: updatedChapters,
+      updatedAt: new Date().toISOString(),
+    });
+
+    return chapter;
+  }
+
+  async updateChapter(
+    sourceId: string,
+    chapterId: string,
+    updates: { title?: string; order?: number }
+  ): Promise<Chapter> {
+    const source = await this.getById(sourceId);
+    if (!source) {
+      throw new Error('Source not found');
+    }
+
+    const chapterIndex = source.chapters.findIndex((ch) => ch.id === chapterId);
+    if (chapterIndex === -1) {
+      throw new Error('Chapter not found');
+    }
+
+    const updated: Chapter = {
+      ...source.chapters[chapterIndex],
+      ...updates,
+    };
+    const updatedChapters = [...source.chapters];
+    updatedChapters[chapterIndex] = updated;
+
+    await cosmosService.update<Source>(CONTAINER, sourceId, {
+      chapters: updatedChapters,
+      updatedAt: new Date().toISOString(),
+    });
+
+    return updated;
+  }
+
+  async deleteChapter(sourceId: string, chapterId: string): Promise<void> {
+    const source = await this.getById(sourceId);
+    if (!source) {
+      throw new Error('Source not found');
+    }
+
+    const chapterExists = source.chapters.some((ch) => ch.id === chapterId);
+    if (!chapterExists) {
+      throw new Error('Chapter not found');
+    }
+
+    const updatedChapters = source.chapters.filter((ch) => ch.id !== chapterId);
+    // Unlink all questions from the deleted chapter
+    const updatedQuestions = source.questions.map((q) =>
+      q.chapterId === chapterId ? { ...q, chapterId: null } : q
+    );
+
+    await cosmosService.update<Source>(CONTAINER, sourceId, {
+      chapters: updatedChapters,
+      questions: updatedQuestions,
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+  async linkQuestionToChapter(
+    sourceId: string,
+    questionId: string,
+    chapterId: string | null
+  ): Promise<void> {
+    const source = await this.getById(sourceId);
+    if (!source) {
+      throw new Error('Source not found');
+    }
+
+    const questionIndex = source.questions.findIndex((q) => q.id === questionId);
+    if (questionIndex === -1) {
+      throw new Error('Question not found');
+    }
+
+    if (chapterId !== null) {
+      const chapterExists = source.chapters.some((ch) => ch.id === chapterId);
+      if (!chapterExists) {
+        throw new Error('Chapter not found');
+      }
+    }
+
+    const updatedQuestions = [...source.questions];
+    updatedQuestions[questionIndex] = {
+      ...updatedQuestions[questionIndex],
+      chapterId,
+    };
+
+    await cosmosService.update<Source>(CONTAINER, sourceId, {
+      questions: updatedQuestions,
+      updatedAt: new Date().toISOString(),
+    });
   }
 
   async deleteQuestion(sourceId: string, questionId: string): Promise<void> {

@@ -77,4 +77,26 @@ Initial setup complete.
 - Answer count range: 2-6 options (default 4)
 - Maintain responsive design across 480px, 768px, 1024px breakpoints
 
+### 2026-04-03: Chapter Management UI
+
+**Changes Made:**
+- Added `chaptersApi` (add/update/delete) and `questionsApi.linkChapter` to `client/src/services/api.ts`
+- Made `Chapter.content` optional and `Question.chapterId` optional (`string | null`) in types
+- Rebuilt `SourceDetail.tsx` with two new sections:
+  - **Chapters section**: Add/edit/delete chapters with inline editing, order display, question count badges
+  - **Questions section**: Filter by chapter dropdown, per-question chapter assignment select, generate-questions-per-chapter buttons
+- Added responsive CSS for chapter management (mobile stacks forms/actions vertically)
+- Fixed `ExamCreate.tsx` type error caused by `chapterId` becoming optional
+
+**API Contracts Used (Mike's backend, parallel work):**
+- `POST /api/sources/:id/chapters` — { title }
+- `PUT /api/sources/:id/chapters/:chapterId` — { title, order }
+- `DELETE /api/sources/:id/chapters/:chapterId`
+- `PUT /api/sources/:id/questions/:questionId/chapter` — { chapterId: string | null }
+
+**Key Patterns:**
+- Chapter CRUD follows same error/loading pattern as existing source/question operations
+- Chapter filter uses `useState` with 'all' | 'unassigned' | chapterId values
+- Inline chapter editing with Enter/Escape keyboard shortcuts
+- Delete chapter confirms and resets filter if the deleted chapter was active filter
 

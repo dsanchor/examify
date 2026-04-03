@@ -25,6 +25,17 @@ export default function TestHistory() {
     }
   };
 
+  const handleDelete = async (e: React.MouseEvent, sessionId: string) => {
+    e.stopPropagation();
+    if (!window.confirm('Delete this test result? This cannot be undone.')) return;
+    try {
+      await testsApi.delete(sessionId);
+      setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete test');
+    }
+  };
+
   const formatDuration = (session: TestSession): string => {
     if (!session.completedAt) return 'N/A';
     const start = new Date(session.startedAt).getTime();
@@ -72,6 +83,7 @@ export default function TestHistory() {
                 <th>Duration</th>
                 <th>Date</th>
                 <th>Status</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -101,6 +113,15 @@ export default function TestHistory() {
                     >
                       {session.status}
                     </span>
+                  </td>
+                  <td>
+                    <button
+                      className="btn btn-danger btn-sm"
+                      onClick={(e) => handleDelete(e, session.id)}
+                      title="Delete"
+                    >
+                      🗑️
+                    </button>
                   </td>
                 </tr>
               ))}

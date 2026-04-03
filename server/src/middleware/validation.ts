@@ -34,8 +34,31 @@ export const updateSourceSchema = Joi.object({
 }).min(1);
 
 export const addQuestionsSchema = Joi.object({
-  chapterId: Joi.string().uuid().required(),
   count: Joi.number().integer().min(1).max(20).default(5),
+});
+
+// Chapter schemas
+export const addChapterSchema = Joi.object({
+  title: Joi.string().min(1).max(200).required(),
+});
+
+export const updateChapterSchema = Joi.object({
+  title: Joi.string().min(1).max(200),
+  order: Joi.number().integer().min(1),
+}).min(1);
+
+export const linkQuestionChapterSchema = Joi.object({
+  chapterId: Joi.string().uuid().allow(null).required(),
+});
+
+export const sourceChapterParamsSchema = Joi.object({
+  id: Joi.string().required(),
+  chapterId: Joi.string().required(),
+});
+
+export const sourceQuestionParamsSchema = Joi.object({
+  id: Joi.string().required(),
+  questionId: Joi.string().required(),
 });
 
 // Exam schemas

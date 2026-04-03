@@ -125,3 +125,17 @@ Agent Mike initialized and ready for work.
 
 6. **Compatibility**: All existing functionality preserved — PDF extraction, question generation, JSON response parsing, debug logging. The SDK swap is a drop-in replacement with improved ergonomics.
 
+
+### 2026-04-04: Manual Chapter Management — Removed AI Chapter Auto-Detection
+
+1. **AI Prompt Simplified**: Removed all chapter extraction logic from `EXTRACTION_SYSTEM_PROMPT`. The AI now only generates questions from PDF content — no chapter detection, no chapterIndex mapping, no "Uncategorized" fallback. Response schema is now `{ "questions": [...] }`.
+
+2. **Chapters Are Manual Labels**: Chapters no longer have a `content` field — they're user-created labels with just `id`, `title`, and `order`. Sources start with an empty chapters array after PDF processing. Users add/update/delete chapters via new REST endpoints.
+
+3. **Questions Have Optional chapterId**: `Question.chapterId` is now `string | null | undefined`. Questions are created without chapter assignment. Users link questions to chapters manually via `PUT /api/sources/:id/questions/:questionId/chapter`.
+
+4. **New Chapter CRUD Endpoints**: Added `POST /chapters`, `PUT /chapters/:chapterId`, `DELETE /chapters/:chapterId` under `/api/sources/:id/`. Deleting a chapter unlinks all its questions (sets chapterId to null). Added validation schemas for all new endpoints.
+
+5. **addQuestions Simplified**: No longer requires chapterId. Uses source title and existing question texts as context for AI generation instead of chapter content.
+
+6. **Exam Service Compatibility**: Updated `examService` to handle optional chapterId — null-safe chapter filtering and chapter ID collection.

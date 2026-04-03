@@ -65,7 +65,7 @@ export default function ExamCreate() {
     for (const source of sources) {
       if (!selectedSourceIds.includes(source.id)) continue;
       for (const q of source.questions) {
-        if (selectedChapterIds.length === 0 || selectedChapterIds.includes(q.chapterId)) {
+        if (selectedChapterIds.length === 0 || (q.chapterId && selectedChapterIds.includes(q.chapterId))) {
           count++;
         }
       }

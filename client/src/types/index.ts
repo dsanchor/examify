@@ -1,13 +1,13 @@
 export interface Chapter {
   id: string;
   title: string;
-  content: string;
+  content?: string;
   order: number;
 }
 
 export interface Question {
   id: string;
-  chapterId: string;
+  chapterId?: string | null;
   text: string;
   options: string[];
   correctAnswerIndex: number;

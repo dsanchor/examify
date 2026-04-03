@@ -138,6 +138,14 @@ class TestService {
     return result;
   }
 
+  async deleteSession(sessionId: string): Promise<void> {
+    const session = await this.getSession(sessionId);
+    if (!session) {
+      throw new Error('Test session not found');
+    }
+    await cosmosService.delete(CONTAINER, sessionId);
+  }
+
   async abandonTest(sessionId: string): Promise<void> {
     const session = await this.getSession(sessionId);
     if (!session) {

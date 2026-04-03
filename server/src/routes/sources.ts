@@ -9,6 +9,11 @@ import {
   createSourceSchema,
   updateSourceSchema,
   addQuestionsSchema,
+  addChapterSchema,
+  updateChapterSchema,
+  linkQuestionChapterSchema,
+  sourceChapterParamsSchema,
+  sourceQuestionParamsSchema,
   paginationSchema,
   idParamSchema,
 } from '../middleware/validation';
@@ -109,16 +114,15 @@ router.post(
   validateParams(idParamSchema),
   validateBody(addQuestionsSchema),
   async (req: Request, res: Response) => {
-    const { chapterId, count } = req.body;
+    const { count } = req.body;
     
     console.log('[SOURCES_DEBUG] Generate additional questions request');
     console.log('[SOURCES_DEBUG] Source ID:', req.params.id);
-    console.log('[SOURCES_DEBUG] Chapter ID:', chapterId);
     console.log('[SOURCES_DEBUG] Count:', count);
     
     try {
       console.log('[SOURCES_DEBUG] Calling sourceService.addQuestions...');
-      const questions = await sourceService.addQuestions(req.params.id, chapterId, count);
+      const questions = await sourceService.addQuestions(req.params.id, count);
       console.log('[SOURCES_DEBUG] ✓ Questions generated successfully, count:', questions.length);
       res.status(201).json(questions);
     } catch (error) {
@@ -139,6 +143,65 @@ router.delete(
   async (req: Request, res: Response) => {
     await sourceService.deleteQuestion(req.params.sourceId, req.params.questionId);
     res.status(204).send();
+  }
+);
+
+// POST /api/sources/:id/chapters - Add a chapter
+router.post(
+  '/:id/chapters',
+  validateParams(idParamSchema),
+  validateBody(addChapterSchema),
+  async (req: Request, res: Response) => {
+    const source = await sourceService.getById(req.params.id);
+    if (!source) {
+      throw new NotFoundError('Source');
+    }
+    const chapter = await sourceService.addChapter(req.params.id, req.body.title);
+    res.status(201).json(chapter);
+  }
+);
+
+// PUT /api/sources/:id/chapters/:chapterId - Update a chapter
+router.put(
+  '/:id/chapters/:chapterId',
+  validateParams(sourceChapterParamsSchema),
+  validateBody(updateChapterSchema),
+  async (req: Request, res: Response) => {
+    const source = await sourceService.getById(req.params.id);
+    if (!source) {
+      throw new NotFoundError('Source');
+    }
+    const chapter = await sourceService.updateChapter(req.params.id, req.params.chapterId, req.body);
+    res.json(chapter);
+  }
+);
+
+// DELETE /api/sources/:id/chapters/:chapterId - Delete a chapter
+router.delete(
+  '/:id/chapters/:chapterId',
+  validateParams(sourceChapterParamsSchema),
+  async (req: Request, res: Response) => {
+    const source = await sourceService.getById(req.params.id);
+    if (!source) {
+      throw new NotFoundError('Source');
+    }
+    await sourceService.deleteChapter(req.params.id, req.params.chapterId);
+    res.status(204).send();
+  }
+);
+
+// PUT /api/sources/:id/questions/:questionId/chapter - Link/unlink a question to a chapter
+router.put(
+  '/:id/questions/:questionId/chapter',
+  validateParams(sourceQuestionParamsSchema),
+  validateBody(linkQuestionChapterSchema),
+  async (req: Request, res: Response) => {
+    const source = await sourceService.getById(req.params.id);
+    if (!source) {
+      throw new NotFoundError('Source');
+    }
+    await sourceService.linkQuestionToChapter(req.params.id, req.params.questionId, req.body.chapterId);
+    res.json({ message: 'Question chapter link updated' });
   }
 );
 

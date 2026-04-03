@@ -52,8 +52,8 @@ function padOptions(question: Question, targetCount: number = 4): ExamQuestion {
 
   return {
     id: uuidv4(),
-    sourceId: question.chapterId, // Will be overwritten
-    chapterId: question.chapterId,
+    sourceId: question.chapterId ?? '', // Will be overwritten
+    chapterId: question.chapterId ?? null,
     text: question.text,
     options: shuffledOptions,
     correctAnswerIndex: newCorrectIndex,
@@ -79,7 +79,7 @@ class ExamService {
 
       for (const question of source.questions) {
         // Filter by chapterIds if specified
-        if (chapterIds && chapterIds.length > 0 && !chapterIds.includes(question.chapterId)) {
+        if (chapterIds && chapterIds.length > 0 && (!question.chapterId || !chapterIds.includes(question.chapterId))) {
           continue;
         }
         allQuestions.push({ question, sourceId });
@@ -100,7 +100,7 @@ class ExamService {
     });
 
     // Collect all unique chapter IDs used
-    const usedChapterIds = [...new Set(examQuestions.map((q) => q.chapterId))];
+    const usedChapterIds = [...new Set(examQuestions.map((q) => q.chapterId).filter((id): id is string => !!id))];
 
     const id = uuidv4();
     const now = new Date().toISOString();

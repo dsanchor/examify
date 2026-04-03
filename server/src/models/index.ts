@@ -1,13 +1,12 @@
 export interface Chapter {
   id: string;
   title: string;
-  content: string;
   order: number;
 }
 
 export interface Question {
   id: string;
-  chapterId: string;
+  chapterId?: string | null;
   text: string;
   options: string[];
   correctAnswerIndex: number;
@@ -40,7 +39,7 @@ export interface ExamConfig {
 export interface ExamQuestion {
   id: string;
   sourceId: string;
-  chapterId: string;
+  chapterId?: string | null;
   text: string;
   options: string[];
   correctAnswerIndex: number;
@@ -107,6 +106,5 @@ export interface PaginatedResponse<T> {
 }
 
 export interface AIExtractionResult {
-  chapters: Chapter[];
   questions: Question[];
 }
