@@ -98,3 +98,30 @@ Agent Mike initialized and ready for work.
 
 3. **Key Insight — Peer Dep Warnings Are Real**: Using `--legacy-peer-deps` to skip peer dependency conflicts can mask genuine incompatibilities. When a plugin requires a major version of its host that the project doesn't use, the mismatch will surface at build/runtime even if npm doesn't complain. Always investigate peer dep conflicts rather than silencing them.
 
+
+### 2026-04-04: Switched from Azure REST SDK to OpenAI SDK
+
+1. **Migration Completed**: Replaced `@azure-rest/ai-inference` and `@azure/core-auth` with the standard `openai` npm package (v4.77.3). The Azure AI Foundry endpoint is fully compatible with the OpenAI SDK.
+
+2. **Code Changes**:
+   - Updated `server/src/services/aiService.ts` to use `new OpenAI({ baseURL: config.ai.endpoint, apiKey: config.ai.key })` instead of ModelClient
+   - Replaced `.path('/chat/completions').post(...)` with `openai.chat.completions.create(...)`
+   - Updated response handling to use `completion.choices[0].message.content` (direct property access)
+   - Removed explicit error handling for non-200 status codes (OpenAI SDK throws automatically)
+   - Kept all existing prompts, `response_format: { type: 'json_object' }`, and `[AI_DEBUG]` logging
+
+3. **Config Changes**:
+   - Removed `apiVersion` field from `server/src/config/index.ts` — no longer needed with OpenAI SDK
+   - The `AZURE_AI_API_VERSION` env var is no longer used
+   - Kept `AZURE_AI_ENDPOINT`, `AZURE_AI_KEY`, and `AZURE_AI_DEPLOYMENT` env vars
+
+4. **Package Management**:
+   - Added `openai` to server dependencies
+   - Removed `@azure-rest/ai-inference` and `@azure/core-auth` from server dependencies
+   - Regenerated `package-lock.json` in local workspace (outside OneDrive) to avoid filesystem corruption
+   - Used the established pattern: copy package.json files → npm install locally → copy lockfile back
+
+5. **Key Insight**: The OpenAI SDK provides a cleaner, more standardized interface for Azure AI Foundry endpoints. The endpoint URL already includes `/openai/v1/`, so no versioning parameter is needed. Error handling is automatic (SDK throws on non-200), simplifying the code. The response structure is simpler with direct property access vs parsing nested objects.
+
+6. **Compatibility**: All existing functionality preserved — PDF extraction, question generation, JSON response parsing, debug logging. The SDK swap is a drop-in replacement with improved ergonomics.
+

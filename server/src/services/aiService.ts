@@ -1,5 +1,4 @@
-import ModelClient, { ChatCompletionsOutput } from '@azure-rest/ai-inference';
-import { AzureKeyCredential } from '@azure/core-auth';
+import OpenAI from 'openai';
 import { config } from '../config';
 import { AIExtractionResult, Chapter, Question } from '../models';
 import { v4 as uuidv4 } from 'uuid';
@@ -46,13 +45,13 @@ IMPORTANT: You MUST respond with valid JSON only, no markdown formatting. Use th
 If the document has no clear chapter divisions, return an empty chapters array and assign all questions to chapterIndex 0 (which will be handled as an "Uncategorized" chapter).`;
 
 class AIService {
-  private client: ReturnType<typeof ModelClient>;
+  private client: OpenAI;
 
   constructor() {
-    this.client = ModelClient(
-      config.ai.endpoint,
-      new AzureKeyCredential(config.ai.key)
-    );
+    this.client = new OpenAI({
+      baseURL: config.ai.endpoint,
+      apiKey: config.ai.key,
+    });
   }
 
   async extractFromPdf(pdfText: string, fileName: string): Promise<AIExtractionResult> {
@@ -64,42 +63,26 @@ class AIService {
     console.log('[AI_DEBUG] Endpoint:', config.ai.endpoint);
     console.log('[AI_DEBUG] API Key (masked):', maskedKey);
     console.log('[AI_DEBUG] Deployment/Model:', config.ai.deployment);
-    console.log('[AI_DEBUG] API Version:', config.ai.apiVersion);
     console.log('[AI_DEBUG] PDF Text Length:', pdfText.length);
     console.log('[AI_DEBUG] Truncated Text Length:', truncatedText.length);
-    console.log('[AI_DEBUG] Request: POST /chat/completions');
 
-    const response = await this.client.path('/chat/completions').post({
-      body: {
-        messages: [
-          { role: 'system', content: EXTRACTION_SYSTEM_PROMPT },
-          {
-            role: 'user',
-            content: `Analyze the following PDF content from "${fileName}" and extract chapters and generate questions.\n\n---\n${truncatedText}\n---`,
-          },
-        ],
-        model: config.ai.deployment,
-        temperature: 0.3,
-        max_tokens: 16000,
-        response_format: { type: 'json_object' },
-      },
+    const completion = await this.client.chat.completions.create({
+      messages: [
+        { role: 'system', content: EXTRACTION_SYSTEM_PROMPT },
+        {
+          role: 'user',
+          content: `Analyze the following PDF content from "${fileName}" and extract chapters and generate questions.\n\n---\n${truncatedText}\n---`,
+        },
+      ],
+      model: config.ai.deployment,
+      temperature: 0.3,
+      max_tokens: 16000,
+      response_format: { type: 'json_object' },
     });
-
-    console.log('[AI_DEBUG] Response status:', response.status);
-
-    if (response.status !== '200') {
-      const errorBody = response.body as { error?: { message?: string } };
-      console.error('[AI_DEBUG] ❌ AI API ERROR');
-      console.error('[AI_DEBUG] Status:', response.status);
-      console.error('[AI_DEBUG] Error Body:', JSON.stringify(errorBody, null, 2));
-      console.error('[AI_DEBUG] Response Headers:', JSON.stringify(response.headers, null, 2));
-      throw new Error(`AI API error: ${errorBody.error?.message || 'Unknown error'}`);
-    }
 
     console.log('[AI_DEBUG] ✓ Successfully received response from AI');
 
-    const body = response.body as ChatCompletionsOutput;
-    const content = body.choices?.[0]?.message?.content;
+    const content = completion.choices[0]?.message?.content;
     if (!content) {
       throw new Error('AI returned empty response');
     }
@@ -166,17 +149,14 @@ class AIService {
     console.log('[AI_DEBUG] Endpoint:', config.ai.endpoint);
     console.log('[AI_DEBUG] API Key (masked):', maskedKey);
     console.log('[AI_DEBUG] Deployment/Model:', config.ai.deployment);
-    console.log('[AI_DEBUG] API Version:', config.ai.apiVersion);
     console.log('[AI_DEBUG] Chapter Title:', chapterTitle);
     console.log('[AI_DEBUG] Questions to generate:', count);
-    console.log('[AI_DEBUG] Request: POST /chat/completions');
 
-    const response = await this.client.path('/chat/completions').post({
-      body: {
-        messages: [
-          {
-            role: 'system',
-            content: `You generate multiple-choice exam questions. Each question should have 3-5 answer options with one correct answer. Respond in JSON format with this schema:
+    const completion = await this.client.chat.completions.create({
+      messages: [
+        {
+          role: 'system',
+          content: `You generate multiple-choice exam questions. Each question should have 3-5 answer options with one correct answer. Respond in JSON format with this schema:
 {
   "questions": [
     {
@@ -187,10 +167,10 @@ class AIService {
     }
   ]
 }`,
-          },
-          {
-            role: 'user',
-            content: `Generate ${count} NEW multiple-choice questions for the chapter "${chapterTitle}".
+        },
+        {
+          role: 'user',
+          content: `Generate ${count} NEW multiple-choice questions for the chapter "${chapterTitle}".
 
 Chapter content:
 ${chapterContent.substring(0, 50000)}
@@ -199,30 +179,17 @@ Existing questions to AVOID duplicating:
 ${existingList || 'None'}
 
 Generate diverse questions covering different aspects of the content.`,
-          },
-        ],
-        model: config.ai.deployment,
-        temperature: 0.5,
-        max_tokens: 8000,
-        response_format: { type: 'json_object' },
-      },
+        },
+      ],
+      model: config.ai.deployment,
+      temperature: 0.5,
+      max_tokens: 8000,
+      response_format: { type: 'json_object' },
     });
-
-    console.log('[AI_DEBUG] Response status:', response.status);
-
-    if (response.status !== '200') {
-      const errorBody = response.body as { error?: { message?: string } };
-      console.error('[AI_DEBUG] ❌ AI API ERROR (generateAdditionalQuestions)');
-      console.error('[AI_DEBUG] Status:', response.status);
-      console.error('[AI_DEBUG] Error Body:', JSON.stringify(errorBody, null, 2));
-      console.error('[AI_DEBUG] Response Headers:', JSON.stringify(response.headers, null, 2));
-      throw new Error(`AI API error: ${errorBody.error?.message || 'Unknown error'}`);
-    }
 
     console.log('[AI_DEBUG] ✓ Successfully received response from AI');
 
-    const body = response.body as ChatCompletionsOutput;
-    const content = body.choices?.[0]?.message?.content;
+    const content = completion.choices[0]?.message?.content;
     if (!content) {
       throw new Error('AI returned empty response');
     }

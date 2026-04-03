@@ -34,7 +34,6 @@ export const config = {
     endpoint: requireEnv('AZURE_AI_ENDPOINT'),
     key: requireEnv('AZURE_AI_KEY'),
     deployment: optionalEnv('AZURE_AI_DEPLOYMENT', 'gpt-5.4-mini'),
-    apiVersion: optionalEnv('AZURE_AI_API_VERSION', '2024-02-15-preview'),
   },
 } as const;
 
