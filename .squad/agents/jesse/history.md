@@ -171,3 +171,27 @@ Initial setup complete.
 **TypeScript Verification:**
 - Ran `npx tsc --noEmit` in client directory — no errors
 
+### 2026-04-03: Easy Auth Frontend Integration
+
+**Changes Made:**
+- Created `client/src/contexts/AuthContext.tsx` — React context that calls `/.auth/me` on app load to detect authenticated users via Azure Container Apps Easy Auth
+- Wrapped `<App />` with `<AuthProvider>` in `client/src/main.tsx`
+- Updated `client/src/components/Layout.tsx` — shows user avatar (initial), display name, and logout button in the header when authenticated
+- Added `withCredentials: true` to axios instance in `client/src/services/api.ts` to forward Easy Auth session cookies
+- Added user menu CSS in `client/src/App.css` with responsive behavior (name hidden on mobile ≤480px, menu repositioned on tablet ≤768px)
+
+**Easy Auth Integration Pattern:**
+- `/.auth/me` returns array of identity providers; we extract `name` or `preferred_username` claim
+- `/.auth/logout` handles logout (full page redirect)
+- Auth is proxy-level — if Easy Auth isn't enabled or user isn't logged in, UI silently shows no user info
+- Session cookies are automatically managed by the browser (same domain)
+
+**Key Patterns:**
+- AuthContext provides `user`, `loading`, and `logout` via `useAuth()` hook
+- Graceful degradation: no error states for unauthenticated users (Easy Auth handles login redirects)
+- User initial shown as avatar circle, full name truncated with ellipsis at 150px
+- Logout button shows danger color on hover for clear affordance
+- Responsive: 480px hides user name (avatar + logout only), 768px moves user menu to top-right of stacked header
+
+**TypeScript Verification:**
+- Ran `npx tsc --noEmit` in client directory — no errors

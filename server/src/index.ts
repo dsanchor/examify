@@ -7,6 +7,7 @@ import path from 'path';
 import { config } from './config';
 import { cosmosService } from './services/cosmosService';
 import { errorHandler } from './middleware/errorHandler';
+import { easyAuthMiddleware } from './middleware/auth';
 import sourcesRouter from './routes/sources';
 import examsRouter from './routes/exams';
 import testsRouter from './routes/tests';
@@ -20,12 +21,24 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan(config.nodeEnv === 'production' ? 'combined' : 'dev'));
 
+// Easy Auth header reading (non-blocking — reads headers if present)
+app.use(easyAuthMiddleware);
+
+// Auth info endpoint
+app.get('/api/auth/me', (req, res) => {
+  if (req.user) {
+    res.json({ authenticated: true, user: req.user });
+  } else {
+    res.json({ authenticated: false, user: null });
+  }
+});
+
 // API routes
 app.use('/api/sources', sourcesRouter);
 app.use('/api/exams', examsRouter);
 app.use('/api/tests', testsRouter);
 
-// Health check
+// Health check — exclude from Easy Auth in Azure config (--excluded-paths "/health")
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });

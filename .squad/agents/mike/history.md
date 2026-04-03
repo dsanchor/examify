@@ -176,3 +176,19 @@ Agent Mike initialized and ready for work.
 4. **Route Positioning**: Placed the new route AFTER `/history` but BEFORE the generic `/:id` route to avoid Express path matching conflicts where `/:id` would capture `/result` as an ID parameter.
 
 5. **Key Insight — Results Don't Need Persistence**: Since TestSessions already contain all the data needed to reconstruct results, persisting TestResults to the database would be redundant and waste storage. On-demand reconstruction keeps the data model simpler and ensures results are always accurate reflections of session data, even if scoring logic changes in the future.
+
+### 2026-04-04: Easy Auth Header Reading Middleware
+
+1. **Non-Blocking Auth Middleware**: Created `server/src/middleware/auth.ts` with `easyAuthMiddleware` that reads Azure Container Apps Easy Auth headers (`x-ms-client-principal-id`, `x-ms-client-principal-name`). Attaches `EasyAuthUser` to `req.user` if headers are present, passes through silently otherwise. Auth enforcement happens at the reverse proxy level, not in app code.
+
+2. **Global Type Augmentation**: Extended Express `Request` interface via `declare global` to add optional `user?: EasyAuthUser` property. This gives type-safe access to `req.user` across all route handlers without additional imports.
+
+3. **Middleware Ordering**: Mounted `easyAuthMiddleware` AFTER helmet/cors/json/morgan but BEFORE all API routes. This ensures user info is available to every route handler.
+
+4. **Auth Info Endpoint**: Added `GET /api/auth/me` that returns `{ authenticated: true, user: { id, name } }` or `{ authenticated: false, user: null }`. Placed before `/api/sources`, `/api/exams`, `/api/tests` routes. Enables frontend to check authentication state.
+
+5. **Health Endpoint Note**: Added comment on `/health` endpoint noting it should be excluded from Easy Auth via Azure config (`--excluded-paths "/health"`). No code changes needed — exclusion is configured in Azure, not in app code.
+
+6. **CORS Credentials**: Verified `credentials: true` is already set in CORS config. Required for Easy Auth's cookie-based session management. No changes needed.
+
+7. **README Updated**: Added "Enable Easy Auth (Microsoft Entra ID)" section with `az containerapp auth microsoft update` and `az containerapp auth update` CLI commands for configuring Entra ID authentication and health endpoint exclusion.
