@@ -119,7 +119,7 @@ docker run -p 3000:3000 --env-file .env examify:latest
 
 ```bash
 RESOURCE_GROUP="examify-rg"
-LOCATION="eastus"
+LOCATION="spaincentral"
 
 az group create --name $RESOURCE_GROUP --location $LOCATION
 ```
@@ -131,10 +131,13 @@ COSMOS_ACCOUNT="examify-cosmos-$(openssl rand -hex 4)"
 
 # Create CosmosDB account
 az cosmosdb create \
-  --name $COSMOS_ACCOUNT \
-  --resource-group $RESOURCE_GROUP \
+  --name "$COSMOS_ACCOUNT" \
+  --resource-group "$RESOURCE_GROUP" \
+  --kind GlobalDocumentDB \
+  --capacity-mode Serverless \
   --default-consistency-level Session \
-  --locations regionName=$LOCATION failoverPriority=0 isZoneRedundant=False
+  --locations regionName="$LOCATION" failoverPriority=0 isZoneRedundant=false \
+  -o none
 
 # Get CosmosDB connection details
 COSMOS_ENDPOINT=$(az cosmosdb show \
@@ -159,60 +162,40 @@ az cosmosdb sql container create \
   --resource-group $RESOURCE_GROUP \
   --database-name examify \
   --name sources \
-  --partition-key-path "/id" \
-  --throughput 400
+  --partition-key-path "/id" 
 
 az cosmosdb sql container create \
   --account-name $COSMOS_ACCOUNT \
   --resource-group $RESOURCE_GROUP \
   --database-name examify \
   --name exams \
-  --partition-key-path "/id" \
-  --throughput 400
+  --partition-key-path "/id" 
 
 az cosmosdb sql container create \
   --account-name $COSMOS_ACCOUNT \
   --resource-group $RESOURCE_GROUP \
   --database-name examify \
   --name tests \
-  --partition-key-path "/id" \
-  --throughput 400
+  --partition-key-path "/id" 
 ```
 
-#### 3. Create Azure Container Registry
+#### 3. Container Image (GitHub Packages)
+
+The Docker image is automatically built and pushed to GitHub Container Registry (ghcr.io) by the CI/CD workflow on every push to `main` or when a version tag is created. No manual build/push step is needed.
+
+Pull the latest image:
 
 ```bash
-ACR_NAME="examifyacr$(openssl rand -hex 4)"
-
-az acr create \
-  --resource-group $RESOURCE_GROUP \
-  --name $ACR_NAME \
-  --sku Basic \
-  --admin-enabled true
-
-# Login to ACR
-az acr login --name $ACR_NAME
-
-# Get ACR credentials
-ACR_LOGIN_SERVER=$(az acr show --name $ACR_NAME --query loginServer -o tsv)
-ACR_USERNAME=$(az acr credential show --name $ACR_NAME --query username -o tsv)
-ACR_PASSWORD=$(az acr credential show --name $ACR_NAME --query passwords[0].value -o tsv)
+docker pull ghcr.io/dsanchor/examify:latest
 ```
 
-#### 4. Build and Push Docker Image
+Set the image variable for the deployment commands below:
 
 ```bash
-# Build image
-docker build -t examify:latest .
-
-# Tag for ACR
-docker tag examify:latest $ACR_LOGIN_SERVER/examify:latest
-
-# Push to ACR
-docker push $ACR_LOGIN_SERVER/examify:latest
+IMAGE="ghcr.io/dsanchor/examify:latest"
 ```
 
-#### 5. Create Azure Container Apps Environment
+#### 4. Create Azure Container Apps Environment
 
 ```bash
 ACA_ENV="examify-env"
@@ -223,7 +206,9 @@ az containerapp env create \
   --location $LOCATION
 ```
 
-#### 6. Deploy Container App
+#### 5. Deploy Container App
+
+Since the image is hosted on ghcr.io, make sure the package is set to **public** in [GitHub Packages settings](https://github.com/dsanchor/examify/pkgs/container/examify/settings), or provide a GitHub PAT with `read:packages` scope as the registry password.
 
 ```bash
 APP_NAME="examify-app"
@@ -232,10 +217,7 @@ az containerapp create \
   --name $APP_NAME \
   --resource-group $RESOURCE_GROUP \
   --environment $ACA_ENV \
-  --image $ACR_LOGIN_SERVER/examify:latest \
-  --registry-server $ACR_LOGIN_SERVER \
-  --registry-username $ACR_USERNAME \
-  --registry-password $ACR_PASSWORD \
+  --image $IMAGE \
   --target-port 3000 \
   --ingress external \
   --min-replicas 1 \
@@ -263,20 +245,37 @@ az containerapp show \
   --query properties.configuration.ingress.fqdn -o tsv
 ```
 
-#### 7. Update Application (after changes)
+> **Private registry?** If the ghcr.io package is private, add registry credentials:
+> ```bash
+> az containerapp create ... \
+>   --registry-server ghcr.io \
+>   --registry-username <github-username> \
+>   --registry-password <github-pat-with-read-packages>
+> ```
+
+#### 6. Update Application (after changes)
+
+Push to `main` or create a tag — the CI/CD workflow builds and pushes a new image automatically. Then update the Container App:
 
 ```bash
-# Rebuild and push new image
-docker build -t examify:latest .
-docker tag examify:latest $ACR_LOGIN_SERVER/examify:latest
-docker push $ACR_LOGIN_SERVER/examify:latest
-
-# Update container app
 az containerapp update \
   --name $APP_NAME \
   --resource-group $RESOURCE_GROUP \
-  --image $ACR_LOGIN_SERVER/examify:latest
+  --image $IMAGE
 ```
+
+## CI/CD
+
+A GitHub Actions workflow (`.github/workflows/build-push.yml`) automatically builds and pushes the Docker image to **GitHub Container Registry** (`ghcr.io`).
+
+| Trigger | Image Tags |
+|---|---|
+| Push to `main` | `latest`, short git SHA |
+| Tag `v*` (e.g. `v1.2.0`) | `1.2.0`, `1.2`, short git SHA |
+| Manual (`workflow_dispatch`) | short git SHA |
+
+Published images are available under the repository's **Packages** tab:
+[github.com/dsanchor/examify/pkgs/container/examify](https://github.com/dsanchor/examify/pkgs/container/examify)
 
 ## Project Structure
 

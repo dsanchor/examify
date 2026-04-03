@@ -58,3 +58,11 @@ Agent Mike initialized and ready for work.
 
 **Team Alignment**: Project structure is complete and stable. Core features working. Ready for integration testing and deployment validation.
 
+### GHCR CI/CD Workflow & README Update
+
+1. **GitHub Actions for GHCR**: Created `.github/workflows/build-push.yml` that builds and pushes the Docker image to `ghcr.io/dsanchor/examify` using `GITHUB_TOKEN` — no extra secrets needed. Uses `docker/metadata-action` for automatic tag generation (latest, short SHA, semver).
+
+2. **ACR → GHCR Migration in README**: Replaced all ACR-related deployment steps (registry creation, credential fetching, manual build/push) with a simpler GHCR-based flow. The image is now built automatically by CI. Deployment commands reference `$IMAGE` variable pointing to `ghcr.io/dsanchor/examify:latest`.
+
+3. **Private Registry Guidance**: Added a callout in the README explaining how to configure Container Apps to pull from a private ghcr.io package (registry credentials with a PAT that has `read:packages` scope).
+
