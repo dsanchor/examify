@@ -16,6 +16,12 @@ class SourceService {
     const id = uuidv4();
     const now = new Date().toISOString();
 
+    console.log('[SOURCE_SERVICE_DEBUG] Creating new source');
+    console.log('[SOURCE_SERVICE_DEBUG] ID:', id);
+    console.log('[SOURCE_SERVICE_DEBUG] Title:', title);
+    console.log('[SOURCE_SERVICE_DEBUG] File name:', file.originalname);
+    console.log('[SOURCE_SERVICE_DEBUG] File size:', file.size);
+
     const source: Source = {
       id,
       title,
@@ -29,11 +35,14 @@ class SourceService {
       updatedAt: now,
     };
 
+    console.log('[SOURCE_SERVICE_DEBUG] Saving to CosmosDB...');
     await cosmosService.create(CONTAINER, source);
+    console.log('[SOURCE_SERVICE_DEBUG] ✓ Saved to CosmosDB');
 
     // Process PDF asynchronously
+    console.log('[SOURCE_SERVICE_DEBUG] Starting async PDF processing...');
     this.processSource(id, file.buffer).catch((error) => {
-      console.error(`Failed to process source ${id}:`, error);
+      console.error(`[SOURCE_SERVICE_DEBUG] ❌ Failed to process source ${id}:`, error);
     });
 
     return source;
@@ -41,10 +50,16 @@ class SourceService {
 
   private async processSource(id: string, buffer: Buffer): Promise<void> {
     try {
+      console.log('[SOURCE_SERVICE_DEBUG] Processing source:', id);
+      console.log('[SOURCE_SERVICE_DEBUG] Buffer size:', buffer.length);
+      
+      console.log('[SOURCE_SERVICE_DEBUG] Parsing PDF...');
       const pdfData = await pdfParse(buffer);
       const pdfText = pdfData.text;
+      console.log('[SOURCE_SERVICE_DEBUG] ✓ PDF parsed, text length:', pdfText.length);
 
       if (!pdfText || pdfText.trim().length === 0) {
+        console.error('[SOURCE_SERVICE_DEBUG] ❌ PDF contains no extractable text');
         await cosmosService.update<Source>(CONTAINER, id, {
           status: 'error',
           errorMessage: 'PDF contains no extractable text.',
@@ -53,11 +68,16 @@ class SourceService {
         return;
       }
 
+      console.log('[SOURCE_SERVICE_DEBUG] Calling AI service for extraction...');
       const extractionResult = await aiService.extractFromPdf(
         pdfText,
         (await cosmosService.read<Source>(CONTAINER, id))?.fileName ?? 'unknown.pdf'
       );
+      console.log('[SOURCE_SERVICE_DEBUG] ✓ AI extraction complete');
+      console.log('[SOURCE_SERVICE_DEBUG] Chapters extracted:', extractionResult.chapters.length);
+      console.log('[SOURCE_SERVICE_DEBUG] Questions extracted:', extractionResult.questions.length);
 
+      console.log('[SOURCE_SERVICE_DEBUG] Updating source in CosmosDB with results...');
       await cosmosService.update<Source>(CONTAINER, id, {
         chapters: extractionResult.chapters,
         questions: extractionResult.questions,
@@ -66,11 +86,16 @@ class SourceService {
       });
 
       console.log(
-        `Source ${id} processed: ${extractionResult.chapters.length} chapters, ${extractionResult.questions.length} questions`
+        `[SOURCE_SERVICE_DEBUG] ✓ Source ${id} processed: ${extractionResult.chapters.length} chapters, ${extractionResult.questions.length} questions`
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown processing error';
-      console.error(`Error processing source ${id}:`, message);
+      console.error(`[SOURCE_SERVICE_DEBUG] ❌ Error processing source ${id}:`, message);
+      if (error instanceof Error) {
+        console.error('[SOURCE_SERVICE_DEBUG] Error stack:', error.stack);
+      }
+      console.error('[SOURCE_SERVICE_DEBUG] Full error object:', error);
+      
       await cosmosService.update<Source>(CONTAINER, id, {
         status: 'error',
         errorMessage: message,
@@ -112,6 +137,11 @@ class SourceService {
   }
 
   async addQuestions(sourceId: string, chapterId: string, count: number): Promise<Question[]> {
+    console.log('[SOURCE_SERVICE_DEBUG] Adding questions to source');
+    console.log('[SOURCE_SERVICE_DEBUG] Source ID:', sourceId);
+    console.log('[SOURCE_SERVICE_DEBUG] Chapter ID:', chapterId);
+    console.log('[SOURCE_SERVICE_DEBUG] Count:', count);
+
     const source = await this.getById(sourceId);
     if (!source) {
       throw new Error('Source not found');
@@ -125,6 +155,9 @@ class SourceService {
     const existingQuestions = source.questions
       .filter((q) => q.chapterId === chapterId)
       .map((q) => q.text);
+    
+    console.log('[SOURCE_SERVICE_DEBUG] Existing questions for chapter:', existingQuestions.length);
+    console.log('[SOURCE_SERVICE_DEBUG] Calling AI service...');
 
     const newQuestionData = await aiService.generateAdditionalQuestions(
       chapter.content,
@@ -132,6 +165,8 @@ class SourceService {
       existingQuestions,
       count
     );
+
+    console.log('[SOURCE_SERVICE_DEBUG] ✓ AI service returned new questions:', newQuestionData.length);
 
     const newQuestions: Question[] = newQuestionData.map((q) => ({
       id: uuidv4(),
@@ -141,10 +176,12 @@ class SourceService {
 
     const allQuestions = [...source.questions, ...newQuestions];
 
+    console.log('[SOURCE_SERVICE_DEBUG] Updating source in CosmosDB...');
     await cosmosService.update<Source>(CONTAINER, sourceId, {
       questions: allQuestions,
       updatedAt: new Date().toISOString(),
     });
+    console.log('[SOURCE_SERVICE_DEBUG] ✓ Source updated successfully');
 
     return newQuestions;
   }

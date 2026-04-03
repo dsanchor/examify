@@ -53,9 +53,28 @@ router.post(
       res.status(400).json({ error: { message: 'PDF file is required', statusCode: 400 } });
       return;
     }
+    
+    console.log('[SOURCES_DEBUG] PDF upload request received');
+    console.log('[SOURCES_DEBUG] File name:', req.file.originalname);
+    console.log('[SOURCES_DEBUG] File size:', req.file.size, 'bytes');
+    console.log('[SOURCES_DEBUG] MIME type:', req.file.mimetype);
+    
     const { title, description } = req.body;
-    const source = await sourceService.create(req.file, title, description);
-    res.status(201).json(source);
+    
+    try {
+      console.log('[SOURCES_DEBUG] Calling sourceService.create...');
+      const source = await sourceService.create(req.file, title, description);
+      console.log('[SOURCES_DEBUG] ✓ Source created successfully, ID:', source.id);
+      res.status(201).json(source);
+    } catch (error) {
+      console.error('[SOURCES_DEBUG] ❌ Error creating source');
+      console.error('[SOURCES_DEBUG] Error details:', error);
+      if (error instanceof Error) {
+        console.error('[SOURCES_DEBUG] Error message:', error.message);
+        console.error('[SOURCES_DEBUG] Error stack:', error.stack);
+      }
+      throw error;
+    }
   }
 );
 
@@ -91,8 +110,26 @@ router.post(
   validateBody(addQuestionsSchema),
   async (req: Request, res: Response) => {
     const { chapterId, count } = req.body;
-    const questions = await sourceService.addQuestions(req.params.id, chapterId, count);
-    res.status(201).json(questions);
+    
+    console.log('[SOURCES_DEBUG] Generate additional questions request');
+    console.log('[SOURCES_DEBUG] Source ID:', req.params.id);
+    console.log('[SOURCES_DEBUG] Chapter ID:', chapterId);
+    console.log('[SOURCES_DEBUG] Count:', count);
+    
+    try {
+      console.log('[SOURCES_DEBUG] Calling sourceService.addQuestions...');
+      const questions = await sourceService.addQuestions(req.params.id, chapterId, count);
+      console.log('[SOURCES_DEBUG] ✓ Questions generated successfully, count:', questions.length);
+      res.status(201).json(questions);
+    } catch (error) {
+      console.error('[SOURCES_DEBUG] ❌ Error generating questions');
+      console.error('[SOURCES_DEBUG] Error details:', error);
+      if (error instanceof Error) {
+        console.error('[SOURCES_DEBUG] Error message:', error.message);
+        console.error('[SOURCES_DEBUG] Error stack:', error.stack);
+      }
+      throw error;
+    }
   }
 );
 

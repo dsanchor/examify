@@ -58,6 +58,17 @@ class AIService {
   async extractFromPdf(pdfText: string, fileName: string): Promise<AIExtractionResult> {
     const truncatedText = pdfText.length > 100000 ? pdfText.substring(0, 100000) : pdfText;
 
+    // Debug logging
+    const maskedKey = config.ai.key.substring(0, 4) + '...';
+    console.log('[AI_DEBUG] Starting PDF extraction');
+    console.log('[AI_DEBUG] Endpoint:', config.ai.endpoint);
+    console.log('[AI_DEBUG] API Key (masked):', maskedKey);
+    console.log('[AI_DEBUG] Deployment/Model:', config.ai.deployment);
+    console.log('[AI_DEBUG] API Version:', config.ai.apiVersion);
+    console.log('[AI_DEBUG] PDF Text Length:', pdfText.length);
+    console.log('[AI_DEBUG] Truncated Text Length:', truncatedText.length);
+    console.log('[AI_DEBUG] Request: POST /chat/completions');
+
     const response = await this.client.path('/chat/completions').post({
       body: {
         messages: [
@@ -74,10 +85,18 @@ class AIService {
       },
     });
 
+    console.log('[AI_DEBUG] Response status:', response.status);
+
     if (response.status !== '200') {
       const errorBody = response.body as { error?: { message?: string } };
+      console.error('[AI_DEBUG] ❌ AI API ERROR');
+      console.error('[AI_DEBUG] Status:', response.status);
+      console.error('[AI_DEBUG] Error Body:', JSON.stringify(errorBody, null, 2));
+      console.error('[AI_DEBUG] Response Headers:', JSON.stringify(response.headers, null, 2));
       throw new Error(`AI API error: ${errorBody.error?.message || 'Unknown error'}`);
     }
+
+    console.log('[AI_DEBUG] ✓ Successfully received response from AI');
 
     const body = response.body as ChatCompletionsOutput;
     const content = body.choices?.[0]?.message?.content;
@@ -141,6 +160,17 @@ class AIService {
   ): Promise<Omit<Question, 'id' | 'chapterId'>[]> {
     const existingList = existingQuestions.map((q, i) => `${i + 1}. ${q}`).join('\n');
 
+    // Debug logging
+    const maskedKey = config.ai.key.substring(0, 4) + '...';
+    console.log('[AI_DEBUG] Generating additional questions');
+    console.log('[AI_DEBUG] Endpoint:', config.ai.endpoint);
+    console.log('[AI_DEBUG] API Key (masked):', maskedKey);
+    console.log('[AI_DEBUG] Deployment/Model:', config.ai.deployment);
+    console.log('[AI_DEBUG] API Version:', config.ai.apiVersion);
+    console.log('[AI_DEBUG] Chapter Title:', chapterTitle);
+    console.log('[AI_DEBUG] Questions to generate:', count);
+    console.log('[AI_DEBUG] Request: POST /chat/completions');
+
     const response = await this.client.path('/chat/completions').post({
       body: {
         messages: [
@@ -178,10 +208,18 @@ Generate diverse questions covering different aspects of the content.`,
       },
     });
 
+    console.log('[AI_DEBUG] Response status:', response.status);
+
     if (response.status !== '200') {
       const errorBody = response.body as { error?: { message?: string } };
+      console.error('[AI_DEBUG] ❌ AI API ERROR (generateAdditionalQuestions)');
+      console.error('[AI_DEBUG] Status:', response.status);
+      console.error('[AI_DEBUG] Error Body:', JSON.stringify(errorBody, null, 2));
+      console.error('[AI_DEBUG] Response Headers:', JSON.stringify(response.headers, null, 2));
       throw new Error(`AI API error: ${errorBody.error?.message || 'Unknown error'}`);
     }
+
+    console.log('[AI_DEBUG] ✓ Successfully received response from AI');
 
     const body = response.body as ChatCompletionsOutput;
     const content = body.choices?.[0]?.message?.content;
