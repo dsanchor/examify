@@ -22,10 +22,11 @@ RUN npm run build --workspace=server
 FROM node:20-alpine AS production
 WORKDIR /app
 
-# Install production-only server dependencies
+# Install production-only dependencies (all workspaces to resolve full dep tree)
 COPY package.json package-lock.json ./
+COPY client/package.json ./client/
 COPY server/package.json ./server/
-RUN npm ci --workspace=server --omit=dev
+RUN npm ci --omit=dev
 
 # Copy built artifacts
 COPY --from=server-builder /app/server/dist ./server/dist
