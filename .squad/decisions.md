@@ -72,6 +72,27 @@ Responsive CSS with breakpoints at 480px (small mobile), 768px (tablet), 1024px 
 
 ---
 
+### 6. GHCR Instead of ACR for Container Images
+**Date**: 2026-04-03  
+**Status**: ✅ Implemented  
+**Decision Maker**: Mike (Backend)
+
+Switched to GitHub Container Registry (ghcr.io) with automated GitHub Actions workflow. Eliminates need for Azure Container Registry resource, uses GITHUB_TOKEN authentication, triggers automatic builds on push to main or version tags.
+
+**Rationale**: 
+- No extra Azure resource cost or management overhead
+- No extra secrets to rotate (GITHUB_TOKEN auto-rotated)
+- Fully automated CI/CD (every push to main/tags builds and pushes)
+- Semver + SHA tagging enables reproducible deployments
+
+**Trade-offs**: Requires GitHub PAT with `read:packages` scope if image is private. ACR has tighter Azure IAM integration for production workloads.
+
+**Files Modified**: 
+- `.github/workflows/build-push.yml` (new)
+- `README.md` (deployment and CI/CD sections)
+
+---
+
 ## Governance
 
 - All meaningful changes require team consensus
