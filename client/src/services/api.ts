@@ -18,6 +18,39 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// Auth token management for Easy Auth
+let authToken: string | null = null;
+let easyAuthEnabled = false;
+
+export function setAuthToken(token: string | null): void {
+  authToken = token;
+}
+
+export function setEasyAuthEnabled(enabled: boolean): void {
+  easyAuthEnabled = enabled;
+}
+
+// Request interceptor to add Bearer token
+api.interceptors.request.use((config) => {
+  if (authToken && config.headers) {
+    config.headers.Authorization = `Bearer ${authToken}`;
+  }
+  return config;
+});
+
+// Response interceptor to handle auth errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (easyAuthEnabled && error.response && 
+        (error.response.status === 401 || error.response.status === 403)) {
+      window.location.href = '/.auth/login/aad?post_login_redirect_uri=' + 
+        encodeURIComponent(window.location.pathname);
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Sources
 export const sourcesApi = {
   list: async (page = 1, pageSize = 20): Promise<PaginatedResponse<Source>> => {
