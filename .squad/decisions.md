@@ -118,6 +118,29 @@ When OneDrive filesystem corruption affected the lockfile, the initial surgical 
 
 ---
 
+### 8. Downgrade @vitejs/plugin-react to v4
+**Date**: 2026-04-03  
+**Status**: ✅ Implemented  
+**Decision Maker**: Mike (Backend)
+
+@vitejs/plugin-react@6.0.1 requires vite@^8.0.0 as a peer dependency, but the project uses vite@^5.0.8. The v6 package imports from `vite/internal` — a subpath export that doesn't exist in vite 5, causing Docker builds to fail.
+
+**Decision**: Downgrade @vitejs/plugin-react from ^6.0.1 to ^4.3.4 (resolves to 4.7.0). Do NOT upgrade vite to 8.
+
+**Rationale**: 
+- plugin-react v4 supports vite ^4/^5/^6/^7 — fully compatible with vite 5
+- React 19 works fine with plugin-react v4
+- Vite 8 is a major version with breaking changes — not appropriate for a quick fix
+- Lockfile regenerated without `--legacy-peer-deps` since no peer dep conflicts remain
+
+**Impact**:
+- `client/package.json` — version bump
+- `package-lock.json` — regenerated
+
+**Future Note**: If we upgrade vite to 6+, we can revisit upgrading plugin-react to match.
+
+---
+
 ## Governance
 
 - All meaningful changes require team consensus

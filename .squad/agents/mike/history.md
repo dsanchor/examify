@@ -78,3 +78,23 @@ Agent Mike initialized and ready for work.
 
 5. **Diagnostic Commands**: `python3 -c "import json; lock=json.load(open('package-lock.json')); [print(k) for k,v in lock['packages'].items() if k.startswith('server/node_modules/') and 'resolved' not in v]"` — finds lockfile entries in workspace node_modules without proper resolution metadata.
 
+### Full Lockfile Regeneration: Fixing Cascading Corruption
+
+1. **Root Cause**: The lockfile corruption from `npm install --force` on OneDrive was deeper than the initial @azure/cosmos fix addressed. Joi's transitive dependencies (`@hapi/hoek`, `@hapi/topo`, `@sideway/address`, `@sideway/formula`, `@sideway/pinpoint`) had zero entries in the lockfile `packages` section, causing MODULE_NOT_FOUND at runtime. Patching individual entries was a losing game — the corruption was systemic.
+
+2. **Solution**: Regenerated the entire lockfile from scratch by copying only `package.json` files to a clean workspace outside OneDrive, running `npm install --legacy-peer-deps`, then copying the clean lockfile back. Used `--legacy-peer-deps` instead of `--force` because `@vitejs/plugin-react@6.0.1` requires `vite@^8.0.0` but client specifies `vite@^5.0.8` — `--legacy-peer-deps` skips peer dep checks without the aggressive overwriting behavior of `--force`.
+
+3. **Key Insight — When to Regenerate vs Patch**: If a lockfile has more than one corrupted package, regenerate from scratch. Lockfile corruption from filesystem issues tends to be systemic, not isolated. The time spent diagnosing and patching individual entries exceeds the time to regenerate.
+
+4. **OneDrive Workaround Pattern**: For any npm operation that writes to disk (install, ci), copy `package.json` files to a local filesystem path (e.g., `/home/user/`), run npm there, then copy results back. OneDrive's file locking and sync behavior corrupts npm's atomic write operations.
+
+5. **Verification Checklist**: After lockfile changes, always verify: (a) critical packages have `resolved`+`integrity`, (b) no workspace-scoped `node_modules/` entries without metadata, (c) `npm ci --omit=dev` succeeds cleanly (the Docker production path).
+
+### Downgrade @vitejs/plugin-react v6 → v4 for Vite 5 Compatibility
+
+1. **Root Cause**: `@vitejs/plugin-react@6.0.1` requires `vite@^8.0.0` and imports `vite/internal`, a subpath that doesn't exist in vite 5. The previous lockfile regeneration used `--legacy-peer-deps` which masked this incompatibility, but the build still failed at runtime with `ERR_PACKAGE_PATH_NOT_EXPORTED`.
+
+2. **Fix**: Downgraded `@vitejs/plugin-react` from `^6.0.1` to `^4.3.4` (resolved to 4.7.0), which supports vite `^4/^5/^6/^7`. Regenerated lockfile cleanly without `--legacy-peer-deps` since no peer dep conflicts remain.
+
+3. **Key Insight — Peer Dep Warnings Are Real**: Using `--legacy-peer-deps` to skip peer dependency conflicts can mask genuine incompatibilities. When a plugin requires a major version of its host that the project doesn't use, the mismatch will surface at build/runtime even if npm doesn't complain. Always investigate peer dep conflicts rather than silencing them.
+
