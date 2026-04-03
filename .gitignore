@@ -1,0 +1,32 @@
+# Squad: ignore runtime state (logs, inbox, sessions)
+.squad/orchestration-log/
+.squad/log/
+.squad/decisions/inbox/
+.squad/sessions/
+# Squad: SubSquad activation file (local to this machine)
+.squad-workstream
+
+# Examify specific
+node_modules/
+dist/
+.env
+*.log
+.DS_Store
+
+# Client specific
+client/dist/
+client/.vite/
+
+# Server specific
+server/dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+node_modules/

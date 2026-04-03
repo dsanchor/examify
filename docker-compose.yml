@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - COSMOS_ENDPOINT=${COSMOS_ENDPOINT}
+      - COSMOS_KEY=${COSMOS_KEY}
+      - COSMOS_DATABASE_NAME=${COSMOS_DATABASE_NAME:-examify}
+      - COSMOS_SOURCES_CONTAINER=${COSMOS_SOURCES_CONTAINER:-sources}
+      - COSMOS_EXAMS_CONTAINER=${COSMOS_EXAMS_CONTAINER:-exams}
+      - COSMOS_TESTS_CONTAINER=${COSMOS_TESTS_CONTAINER:-tests}
+      - AZURE_AI_ENDPOINT=${AZURE_AI_ENDPOINT}
+      - AZURE_AI_KEY=${AZURE_AI_KEY}
+      - AZURE_AI_DEPLOYMENT=${AZURE_AI_DEPLOYMENT:-gpt-5.4-mini}
+      - AZURE_AI_API_VERSION=${AZURE_AI_API_VERSION:-2024-02-15-preview}
+      - PORT=3000
+      - CLIENT_URL=http://localhost:5173
+    volumes:
+      - ./server/src:/app/server/src
+      - ./client/src:/app/client/src
+    depends_on:
+      - cosmos-emulator
+    networks:
+      - examify-network
+
+  # Azure Cosmos DB Emulator (for local development)
+  # Note: Use cloud Cosmos DB for production
+  cosmos-emulator:
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
+    ports:
+      - "8081:8081"
+      - "10251:10251"
+      - "10252:10252"
+      - "10253:10253"
+      - "10254:10254"
+    environment:
+      - AZURE_COSMOS_EMULATOR_PARTITION_COUNT=10
+      - AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE=true
+    networks:
+      - examify-network
+
+networks:
+  examify-network:
+    driver: bridge
