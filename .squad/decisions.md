@@ -93,24 +93,28 @@ Switched to GitHub Container Registry (ghcr.io) with automated GitHub Actions wo
 
 ---
 
-### 7. Fix @azure/cosmos Lockfile Hoisting
+### 7. Full Lockfile Regeneration (Not Surgical Patches)
 **Date**: 2026-04-03  
 **Status**: ✅ Implemented  
 **Decision Maker**: Mike (Backend)
 
-Fixed corrupted `package-lock.json` entry where `@azure/cosmos` was placed in `server/node_modules/` without `resolved`/`integrity` fields — an artifact of `npm install --force` on OneDrive-synced paths.
+When OneDrive filesystem corruption affected the lockfile, the initial surgical patch of `@azure/cosmos` immediately revealed deeper systemic corruption in joi's transitive dependencies (`@hapi/*`, `@sideway/*`). These had zero entries in the lockfile `packages` section.
 
-**Decision**: Surgically moved the `@azure/cosmos` entry from `server/node_modules/@azure/cosmos` to `node_modules/@azure/cosmos` with proper registry metadata. This restores npm's hoisting mechanism, allowing `@azure/keyvault-keys` to be properly installed during Docker's `npm ci --omit=dev`.
+**Decision**: Regenerated the entire `package-lock.json` from scratch by copying only `package.json` files to a clean local workspace (outside OneDrive), running `npm install --legacy-peer-deps`, and copying the clean lockfile back. Used `--legacy-peer-deps` instead of `--force` to avoid aggressive overwrites.
 
 **Rationale**: 
+- Lockfile corruption from filesystem issues is systemic, not isolated
+- Surgical patches are whack-a-mole — fixing one reveals another
+- Full regeneration is faster, more reliable, and more maintainable than cascading patch cycles
 - Prevents Docker builds from failing due to missing dependencies
-- Ensures production images have all required Azure SDK packages
-- Identifies corruption pattern for future prevention
+- Ensures production images have complete and properly resolved dependency trees
 
-**Warning for Team**: After any `npm install --force` operation, verify the lockfile doesn't have packages in workspace-scoped `node_modules/` paths (e.g., `server/node_modules/`, `client/node_modules/`) with missing `resolved` fields. These indicate corruption that will break CI/CD.
+**OneDrive Workaround**: For any npm operation (install, ci), copy `package.json` files to local path, run npm there, copy results back. OneDrive's file locking corrupts npm's atomic writes.
+
+**Warning for Team**: After any lockfile modification, verify: (a) critical packages have `resolved`+`integrity`, (b) no workspace-scoped `node_modules/` entries without metadata, (c) `npm ci --omit=dev` succeeds (the Docker production path).
 
 **Files Modified**: 
-- `package-lock.json`
+- `package-lock.json` — fully regenerated with all transitive deps properly resolved
 
 ---
 
