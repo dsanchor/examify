@@ -1,18 +1,73 @@
+import { useState, useEffect } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { testsApi } from '../services/api';
 import type { TestResult as TestResultType } from '../types';
 
 export default function TestResult() {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const navigate = useNavigate();
-  const result = (location.state as { result?: TestResultType })?.result;
+  const stateResult = (location.state as { result?: TestResultType })?.result;
+
+  const [result, setResult] = useState<TestResultType | null>(stateResult || null);
+  const [loading, setLoading] = useState(!stateResult);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    // If we already have result from navigation state, no need to fetch
+    if (stateResult) {
+      return;
+    }
+
+    // Otherwise, fetch from API
+    const fetchResult = async () => {
+      if (!id) {
+        setError('No test session ID provided');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const data = await testsApi.getResult(id);
+        setResult(data);
+        setError('');
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load test result');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchResult();
+  }, [id, stateResult]);
+
+  if (loading) {
+    return (
+      <div className="test-result-page">
+        <div className="loading">Loading test result...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="test-result-page">
+        <div className="alert alert-error">
+          <p>{error}</p>
+        </div>
+        <button className="btn btn-primary" onClick={() => navigate('/history')}>
+          View Test History
+        </button>
+      </div>
+    );
+  }
 
   if (!result) {
     return (
       <div className="test-result-page">
         <div className="alert alert-info">
-          <p>Test session {id} — no result data available.</p>
-          <p>This may happen if you revisited this page. Check your test history.</p>
+          <p>Test result not found.</p>
         </div>
         <button className="btn btn-primary" onClick={() => navigate('/history')}>
           View Test History

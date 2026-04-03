@@ -35,6 +35,15 @@ router.get('/history', validateQuery(paginationSchema), async (req: Request, res
   res.json(result);
 });
 
+// GET /api/tests/:id/result - Get test result for a completed session
+router.get('/:id/result', validateParams(idParamSchema), async (req: Request, res: Response) => {
+  const result = await testService.getResult(req.params.id);
+  if (!result) {
+    throw new NotFoundError('Test result');
+  }
+  res.json(result);
+});
+
 // GET /api/tests/:id - Get a test session
 router.get('/:id', validateParams(idParamSchema), async (req: Request, res: Response) => {
   const session = await testService.getSession(req.params.id);

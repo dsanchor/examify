@@ -159,3 +159,20 @@ Agent Mike initialized and ready for work.
 4. **No Validation Needed**: Dry run endpoint requires no validation schema since all parameters are hardcoded.
 
 5. **Key Design Decision**: Reserve questions are included in the same exam (not a separate collection) and marked with a flag. This allows the frontend to handle them differently (e.g., show after main questions or use for analytics) while keeping the data model simple.
+
+### 2026-04-04: Test Result Reconstruction Endpoint
+
+1. **Problem Solved**: Previously, when users submitted a test, the `TestResult` was calculated on-the-fly and returned as an HTTP response but never persisted to CosmosDB. The frontend passed it via React Router navigation state, which was lost on page refresh or when navigating from test history. Users clicking on a completed test in history saw "no result data available."
+
+2. **Solution**: Added `GET /api/tests/:id/result` endpoint that reconstructs the `TestResult` from a completed `TestSession` on demand. The TestSession already contains all necessary data: questions with correct answers and explanations, user answers, timing information, and exam metadata.
+
+3. **Service Implementation**: Created `testService.getResult(sessionId)` method that:
+   - Fetches the TestSession and validates it's completed
+   - Reconstructs `questionResults` by comparing answers to questions (same logic as `submitTest`)
+   - Calculates `score`, `correctAnswers`, `timeTakenSeconds` from session data
+   - Uses deterministic result ID (`result-${sessionId}`) for stability across requests
+   - Returns null for non-existent or incomplete sessions
+
+4. **Route Positioning**: Placed the new route AFTER `/history` but BEFORE the generic `/:id` route to avoid Express path matching conflicts where `/:id` would capture `/result` as an ID parameter.
+
+5. **Key Insight — Results Don't Need Persistence**: Since TestSessions already contain all the data needed to reconstruct results, persisting TestResults to the database would be redundant and waste storage. On-demand reconstruction keeps the data model simpler and ensures results are always accurate reflections of session data, even if scoring logic changes in the future.

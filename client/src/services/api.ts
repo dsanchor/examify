@@ -155,6 +155,11 @@ export const testsApi = {
   delete: async (sessionId: string): Promise<void> => {
     await api.delete(`/tests/${sessionId}`);
   },
+
+  getResult: async (sessionId: string): Promise<TestResult> => {
+    const { data } = await api.get(`/tests/${sessionId}/result`);
+    return data;
+  },
 };
 
 export default api;

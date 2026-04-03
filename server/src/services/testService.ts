@@ -198,6 +198,55 @@ class TestService {
       hasMore: page * pageSize < total,
     };
   }
+
+  async getResult(sessionId: string): Promise<TestResult | null> {
+    const session = await this.getSession(sessionId);
+    if (!session || session.status !== 'completed') {
+      return null;
+    }
+
+    // Calculate time taken
+    const startTime = new Date(session.startedAt).getTime();
+    const endTime = new Date(session.completedAt!).getTime();
+    const timeTakenSeconds = Math.round((endTime - startTime) / 1000);
+
+    // Reconstruct question results
+    const questionResults: QuestionResult[] = session.questions.map((question) => {
+      const answer = session.answers.find((a) => a.questionId === question.id);
+      const selectedIndex = answer?.selectedAnswerIndex ?? null;
+      const isCorrect = selectedIndex === question.correctAnswerIndex;
+
+      return {
+        questionId: question.id,
+        questionText: question.text,
+        options: question.options,
+        selectedAnswerIndex: selectedIndex,
+        correctAnswerIndex: question.correctAnswerIndex,
+        isCorrect,
+        explanation: question.explanation,
+      };
+    });
+
+    // Calculate scores
+    const correctAnswers = questionResults.filter((r) => r.isCorrect).length;
+    const totalQuestions = questionResults.length;
+    const score = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+
+    const result: TestResult = {
+      id: `result-${sessionId}`,
+      testSessionId: sessionId,
+      examId: session.examId,
+      examTitle: session.examTitle,
+      totalQuestions,
+      correctAnswers,
+      score,
+      timeTakenSeconds,
+      questionResults,
+      completedAt: session.completedAt!,
+    };
+
+    return result;
+  }
 }
 
 export const testService = new TestService();

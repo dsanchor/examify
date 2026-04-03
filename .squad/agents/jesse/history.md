@@ -141,3 +141,33 @@ Initial setup complete.
 - Last 9 questions have `isReserve: true` flag
 - Backend handles auto-generated title and "all sources" logic
 
+### 2026-04-03: TestResult API Fallback for Refreshes and Direct URLs
+
+**Problem:**
+- `TestResult.tsx` relied entirely on `location.state.result` from React Router navigation state
+- This only worked when navigating directly after test submission
+- Failed when users refreshed the page, navigated from history, or used bookmarked URLs
+- Users saw "no result data available" dead-end message
+
+**Solution:**
+- Added `testsApi.getResult(sessionId)` method to `client/src/services/api.ts` that calls `GET /tests/${sessionId}/result`
+- Rewrote `TestResult.tsx` to implement fast path + fallback pattern:
+  - First checks `location.state.result` (fast path — data already available)
+  - If missing, fetches from API using `testsApi.getResult(id)`
+- Added `useState` for `result`, `loading`, and `error` state management
+- Added `useEffect` hook that conditionally fetches from API only when navigation state is missing
+- Replaced dead-end message with proper loading spinner and error handling
+
+**Key Patterns:**
+- Fast path optimization: Navigation state used directly when available (no API call)
+- API fallback: Automatic fetch when state is missing (refresh, direct URL, history navigation)
+- Loading states: Shows spinner while fetching, error message on failure
+- No changes needed to `TestHistory.tsx` — it navigates to `/tests/${session.id}/result` without state, which now works correctly
+
+**Files Modified:**
+- `client/src/services/api.ts` — Added `getResult` method to `testsApi`
+- `client/src/pages/TestResult.tsx` — Complete rewrite of data fetching logic with state management and API fallback
+
+**TypeScript Verification:**
+- Ran `npx tsc --noEmit` in client directory — no errors
+
