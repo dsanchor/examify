@@ -30,7 +30,7 @@ RUN npm ci --omit=dev
 
 # Copy built artifacts
 COPY --from=server-builder /app/server/dist ./server/dist
-COPY --from=client-builder /app/client/dist ./public
+COPY --from=client-builder /app/client/dist ./server/public
 
 # Set environment variables
 ENV NODE_ENV=production
