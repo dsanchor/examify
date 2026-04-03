@@ -1,0 +1,46 @@
+{
+  "agents": {
+    "lead": {
+      "persistent_name": "Walt",
+      "universe": "Breaking Bad",
+      "created_at": "2026-04-03T12:49:51Z",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "frontend-dev": {
+      "persistent_name": "Jesse",
+      "universe": "Breaking Bad",
+      "created_at": "2026-04-03T12:49:51Z",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "backend-dev": {
+      "persistent_name": "Mike",
+      "universe": "Breaking Bad",
+      "created_at": "2026-04-03T12:49:51Z",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "tester": {
+      "persistent_name": "Hank",
+      "universe": "Breaking Bad",
+      "created_at": "2026-04-03T12:49:51Z",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "scribe": {
+      "persistent_name": "Scribe",
+      "universe": "N/A",
+      "created_at": "2026-04-03T12:49:51Z",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "ralph": {
+      "persistent_name": "Ralph",
+      "universe": "N/A",
+      "created_at": "2026-04-03T12:49:51Z",
+      "legacy_named": false,
+      "status": "active"
+    }
+  }
+}
