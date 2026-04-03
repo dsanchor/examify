@@ -221,9 +221,9 @@ az containerapp create \
   --target-port 3000 \
   --ingress external \
   --min-replicas 1 \
-  --max-replicas 3 \
-  --cpu 1.0 \
-  --memory 2Gi \
+  --max-replicas 1 \
+  --cpu 0.5 \
+  --memory 1Gi \
   --env-vars \
     "NODE_ENV=production" \
     "PORT=3000" \
@@ -233,10 +233,10 @@ az containerapp create \
     "COSMOS_SOURCES_CONTAINER=sources" \
     "COSMOS_EXAMS_CONTAINER=exams" \
     "COSMOS_TESTS_CONTAINER=tests" \
-    "AZURE_AI_ENDPOINT=<your-ai-foundry-endpoint>" \
-    "AZURE_AI_KEY=<your-ai-key>" \
-    "AZURE_AI_DEPLOYMENT=gpt-5.4-mini" \
-    "AZURE_AI_API_VERSION=2024-02-15-preview"
+    "AZURE_AI_ENDPOINT=$AZURE_AI_ENDPOINT" \
+    "AZURE_AI_KEY=$AZURE_AI_KEY" \
+    "AZURE_AI_DEPLOYMENT=$AZURE_AI_DEPLOYMENT" \
+    "AZURE_AI_API_VERSION=$AZURE_AI_API_VERSION"
 
 # Get the app URL
 az containerapp show \
