@@ -44,6 +44,7 @@ export interface ExamQuestion {
   options: string[];
   correctAnswerIndex: number;
   explanation: string;
+  isReserve?: boolean;
 }
 
 export interface Exam {
@@ -55,6 +56,7 @@ export interface Exam {
   questions: ExamQuestion[];
   createdAt: string;
   updatedAt: string;
+  isDryRun?: boolean;
 }
 
 export interface TestAnswer {

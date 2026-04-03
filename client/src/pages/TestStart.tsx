@@ -22,6 +22,10 @@ export default function TestStart() {
       setLoading(true);
       const data = await examsApi.getById(id);
       setExam(data);
+      // If it's a dry run, preset the timer to 120 minutes
+      if (data.isDryRun) {
+        setTimeLimitMinutes(120);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load exam');
     } finally {
@@ -47,6 +51,9 @@ export default function TestStart() {
   if (loading) return <div className="loading">Loading exam...</div>;
   if (!exam) return <div className="alert alert-error">Exam not found</div>;
 
+  const mainQuestions = exam.isDryRun ? 120 : exam.questions.length;
+  const reserveQuestions = exam.isDryRun ? exam.questions.length - 120 : 0;
+
   return (
     <div className="test-start-page">
       <h1>Start Test</h1>
@@ -54,11 +61,25 @@ export default function TestStart() {
       {error && <div className="alert alert-error">{error}</div>}
 
       <div className="exam-summary card">
+        {exam.isDryRun && (
+          <div className="dry-run-badge">
+            <span className="badge badge-primary">🎯 Dry Run</span>
+          </div>
+        )}
         <h2>{exam.title}</h2>
         {exam.description && <p>{exam.description}</p>}
         <div className="card-meta">
-          <span>❓ {exam.questions.length} questions</span>
-          <span>📅 Created {new Date(exam.createdAt).toLocaleDateString()}</span>
+          {exam.isDryRun ? (
+            <>
+              <span>❓ {mainQuestions} main questions + {reserveQuestions} reserve</span>
+              <span>⏱ 120 minutes</span>
+            </>
+          ) : (
+            <>
+              <span>❓ {exam.questions.length} questions</span>
+              <span>📅 Created {new Date(exam.createdAt).toLocaleDateString()}</span>
+            </>
+          )}
         </div>
       </div>
 
@@ -72,12 +93,17 @@ export default function TestStart() {
             onChange={(e) => setTimeLimitMinutes(parseInt(e.target.value) || 1)}
             min={1}
             max={300}
-            disabled={starting}
+            disabled={starting || exam.isDryRun}
+            readOnly={exam.isDryRun}
           />
-          <p className="hint">
-            Recommended: ~{Math.ceil(exam.questions.length * 1.5)} minutes
-            ({exam.questions.length} questions × 1.5 min each)
-          </p>
+          {exam.isDryRun ? (
+            <p className="hint">⏱ Fixed at 120 minutes for dry run exams</p>
+          ) : (
+            <p className="hint">
+              Recommended: ~{Math.ceil(exam.questions.length * 1.5)} minutes
+              ({exam.questions.length} questions × 1.5 min each)
+            </p>
+          )}
         </div>
 
         <div className="form-group">

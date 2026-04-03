@@ -153,6 +153,7 @@ function AllAtOnceMode({
   const { formattedTime, isExpired } = useTimer(session.timeLimitMinutes, session.startedAt);
   const totalQuestions = session.questions.length;
   const answeredCount = Array.from(answers.values()).filter((v) => v !== null).length;
+  const mainQuestionsCount = session.questions.filter(q => !q.isReserve).length;
 
   useEffect(() => {
     if (isExpired) {
@@ -173,33 +174,47 @@ function AllAtOnceMode({
       {error && <div className="alert alert-error">{error}</div>}
 
       <div className="all-questions-container">
-        {session.questions.map((question, index) => (
-          <div key={question.id} className="question-card" id={`question-${index}`}>
-            <div className="question-number">Question {index + 1}</div>
-            <p className="question-text">{question.text}</p>
+        {session.questions.map((question, index) => {
+          const isReserveSection = question.isReserve && index === mainQuestionsCount;
+          
+          return (
+            <>
+              {isReserveSection && (
+                <div className="reserve-divider">
+                  <span>Reserve Questions</span>
+                </div>
+              )}
+              <div key={question.id} className="question-card" id={`question-${index}`}>
+                <div className="question-number">
+                  Question {index + 1}
+                  {question.isReserve && <span className="reserve-label"> (Reserve)</span>}
+                </div>
+                <p className="question-text">{question.text}</p>
 
-            <div className="options">
-              {question.options.map((option, oi) => (
-                <label
-                  key={oi}
-                  className={`option-label ${
-                    answers.get(question.id) === oi ? 'selected' : ''
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name={`q-${question.id}`}
-                    checked={answers.get(question.id) === oi}
-                    onChange={() => selectAnswer(question.id, oi)}
-                    disabled={submitting}
-                  />
-                  <span className="option-letter">{String.fromCharCode(65 + oi)}</span>
-                  <span className="option-text">{option}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-        ))}
+                <div className="options">
+                  {question.options.map((option, oi) => (
+                    <label
+                      key={oi}
+                      className={`option-label ${
+                        answers.get(question.id) === oi ? 'selected' : ''
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name={`q-${question.id}`}
+                        checked={answers.get(question.id) === oi}
+                        onChange={() => selectAnswer(question.id, oi)}
+                        disabled={submitting}
+                      />
+                      <span className="option-letter">{String.fromCharCode(65 + oi)}</span>
+                      <span className="option-text">{option}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </>
+          );
+        })}
 
         <div className="submit-section">
           <button
@@ -286,6 +301,7 @@ function OneByOneMode({
           <h2>{session.examTitle}</h2>
           <span>
             Question {currentIndex + 1} of {totalQuestions}
+            {question.isReserve && <span className="reserve-label"> (Reserve)</span>}
           </span>
           <span>Answered: {answeredCount}/{totalQuestions}</span>
         </div>
@@ -296,7 +312,10 @@ function OneByOneMode({
 
       <div className="test-body">
         <div className="question-panel">
-          <div className="question-number">Question {currentIndex + 1}</div>
+          <div className="question-number">
+            Question {currentIndex + 1}
+            {question.isReserve && <span className="reserve-label"> (Reserve)</span>}
+          </div>
           <p className="question-text">{question.text}</p>
 
           <div className="options">

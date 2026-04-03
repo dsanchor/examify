@@ -139,3 +139,23 @@ Agent Mike initialized and ready for work.
 5. **addQuestions Simplified**: No longer requires chapterId. Uses source title and existing question texts as context for AI generation instead of chapter content.
 
 6. **Exam Service Compatibility**: Updated `examService` to handle optional chapterId — null-safe chapter filtering and chapter ID collection.
+
+### 2026-04-04: Dry Run Exam Feature
+
+1. **Model Updates**: Added `isDryRun?: boolean` to `Exam` interface and `isReserve?: boolean` to `ExamQuestion` interface. These flags identify certification practice exams and mark reserve questions used for complaint validation.
+
+2. **Dry Run Service Method**: Implemented `createDryRun()` in `examService` that:
+   - Fetches all ready sources automatically (no user selection)
+   - Collects all questions from all sources (no chapter filtering)
+   - Randomly selects 129 questions (120 main + 9 reserve) or uses all available questions if fewer
+   - Splits proportionally when insufficient questions (93% main / 7% reserve ratio)
+   - Marks questions with `isReserve: true/false` based on position
+   - Auto-generates title with current date (e.g., "Dry Run — Apr 4, 2026")
+   - Uses 4 answer options per question (hardcoded for certification standard)
+   - Sets `isDryRun: true` on the exam
+
+3. **New API Endpoint**: Added `POST /api/exams/dryrun` route that requires no body and returns the created exam (201). Route positioned before parameterized routes to avoid path conflicts.
+
+4. **No Validation Needed**: Dry run endpoint requires no validation schema since all parameters are hardcoded.
+
+5. **Key Design Decision**: Reserve questions are included in the same exam (not a separate collection) and marked with a flag. This allows the frontend to handle them differently (e.g., show after main questions or use for analytics) while keeping the data model simple.

@@ -157,6 +157,82 @@ class ExamService {
       questions: s.questions,
     }));
   }
+
+  async createDryRun(): Promise<Exam> {
+    // Fetch all ready sources
+    const sources = await this.getAvailableSources();
+    
+    if (sources.length === 0) {
+      throw new Error('No sources available for dry run exam');
+    }
+
+    // Collect all questions from all sources
+    const allQuestions: { question: Question; sourceId: string }[] = [];
+    for (const source of sources) {
+      for (const question of source.questions) {
+        allQuestions.push({ question, sourceId: source.id });
+      }
+    }
+
+    if (allQuestions.length === 0) {
+      throw new Error('No questions available for dry run exam');
+    }
+
+    // Target: 120 main + 9 reserve = 129 total
+    const targetTotal = 129;
+    const targetMain = 120;
+    const targetReserve = 9;
+
+    let actualTotal: number;
+    let actualMain: number;
+    let actualReserve: number;
+
+    if (allQuestions.length >= targetTotal) {
+      // We have enough questions
+      actualTotal = targetTotal;
+      actualMain = targetMain;
+      actualReserve = targetReserve;
+    } else {
+      // Not enough questions - use all and split proportionally (93% main / 7% reserve)
+      actualTotal = allQuestions.length;
+      actualMain = Math.floor(actualTotal * 0.93);
+      actualReserve = actualTotal - actualMain;
+    }
+
+    // Shuffle and select questions
+    const selectedQuestions = shuffleArray(allQuestions).slice(0, actualTotal);
+
+    // Convert to ExamQuestions, marking reserve questions
+    const examQuestions: ExamQuestion[] = selectedQuestions.map(({ question, sourceId }, index) => {
+      const examQ = padOptions(question, 4); // Dry runs always use 4 answers
+      examQ.sourceId = sourceId;
+      examQ.isReserve = index >= actualMain; // Questions after actualMain are reserves
+      return examQ;
+    });
+
+    // Collect all unique source and chapter IDs
+    const usedSourceIds = [...new Set(examQuestions.map((q) => q.sourceId))];
+    const usedChapterIds = [...new Set(examQuestions.map((q) => q.chapterId).filter((id): id is string => !!id))];
+
+    const id = uuidv4();
+    const now = new Date().toISOString();
+    const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+    const exam: Exam = {
+      id,
+      title: `Dry Run — ${dateStr}`,
+      description: `Certification dry run exam: ${actualMain} questions + ${actualReserve} reserve questions from all sources.`,
+      sourceIds: usedSourceIds,
+      chapterIds: usedChapterIds,
+      questions: examQuestions,
+      isDryRun: true,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await cosmosService.create(CONTAINER, exam);
+    return exam;
+  }
 }
 
 export const examService = new ExamService();

@@ -100,3 +100,44 @@ Initial setup complete.
 - Inline chapter editing with Enter/Escape keyboard shortcuts
 - Delete chapter confirms and resets filter if the deleted chapter was active filter
 
+### 2026-04-03: Dry Run Exam Feature
+
+**Changes Made:**
+- Added `isDryRun?: boolean` flag to `Exam` interface in `types/index.ts`
+- Added `isReserve?: boolean` flag to `ExamQuestion` interface in `types/index.ts`
+- Added `examsApi.createDryRun()` method to `services/api.ts` that calls `POST /exams/dryrun`
+- Enhanced `ExamCreate.tsx` with prominent "Dry Run" section at the top:
+  - Eye-catching card with gradient background and primary border
+  - Description of certification dry run format (120 + 9 reserve questions, 120 min timer)
+  - "Start Dry Run" button with loading state
+  - Visual section divider between dry run and custom exam creation
+- Updated `TestStart.tsx` to handle dry run exams:
+  - Auto-preset timer to 120 minutes for dry run exams (read-only)
+  - Display "Dry Run" badge and question breakdown (main + reserve counts)
+  - Different hint text for dry run vs custom exams
+- Updated `TestTake.tsx` to visually distinguish reserve questions:
+  - All-at-once mode: Shows "Reserve Questions" divider before first reserve question
+  - Both modes: Display "(Reserve)" label next to reserve question numbers
+  - Reserve questions are last 9 questions in the exam
+- Added comprehensive CSS styling in `App.css`:
+  - Dry run card with gradient background and prominent styling
+  - Section divider with horizontal lines
+  - Badge styling for dry run indicator
+  - Reserve divider with dashed border and warning colors
+  - Reserve label styling in amber/warning color
+  - Mobile-responsive adjustments for all new components
+
+**UX Patterns:**
+- Dry run section is positioned FIRST on ExamCreate page to be immediately visible
+- Loading state on dry run button prevents double-submission
+- Error handling follows existing pattern (alert at top of page)
+- Timer locked at 120 minutes for dry run exams (no user modification)
+- Reserve questions visually separated but integrated into same flow
+- Mobile-first design: full-width button, scaled text, responsive dividers
+
+**API Integration:**
+- Calls Mike's `POST /api/exams/dryrun` endpoint (backend in parallel)
+- Expects response with 129 total questions (120 main + 9 reserve)
+- Last 9 questions have `isReserve: true` flag
+- Backend handles auto-generated title and "all sources" logic
+

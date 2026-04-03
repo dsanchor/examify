@@ -1403,3 +1403,140 @@ body {
     grid-template-columns: repeat(4, 1fr);
   }
 }
+
+/* ===== Dry Run Section ===== */
+.dry-run-section {
+  margin-bottom: 2rem;
+}
+
+.dry-run-card {
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+  border: 2px solid var(--primary);
+  padding: 2rem;
+  text-align: center;
+}
+
+.dry-run-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.dry-run-icon {
+  font-size: 2rem;
+}
+
+.dry-run-card h2 {
+  margin: 0;
+  color: var(--primary);
+  font-size: 1.75rem;
+}
+
+.dry-run-description {
+  color: var(--text-muted);
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.dry-run-button {
+  font-size: 1.125rem;
+  padding: 0.875rem 2rem;
+  box-shadow: var(--shadow-lg);
+}
+
+.section-divider {
+  text-align: center;
+  margin: 2rem 0;
+  position: relative;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.section-divider::before,
+.section-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 40%;
+  height: 1px;
+  background: var(--border);
+}
+
+.section-divider::before {
+  left: 0;
+}
+
+.section-divider::after {
+  right: 0;
+}
+
+.section-divider span {
+  background: var(--bg);
+  padding: 0 1rem;
+  position: relative;
+}
+
+/* ===== Dry Run Badge ===== */
+.dry-run-badge {
+  margin-bottom: 1rem;
+}
+
+.badge-primary {
+  background: var(--primary);
+  color: white;
+  padding: 0.375rem 0.875rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+/* ===== Reserve Questions ===== */
+.reserve-divider {
+  margin: 2rem 0;
+  padding: 1rem;
+  background: #fef3c7;
+  border: 2px dashed var(--warning);
+  border-radius: var(--radius);
+  text-align: center;
+  font-weight: 700;
+  font-size: 1.125rem;
+  color: #92400e;
+}
+
+.reserve-label {
+  color: var(--warning);
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-left: 0.375rem;
+}
+
+/* ===== Mobile Responsive - Dry Run ===== */
+@media (max-width: 768px) {
+  .dry-run-card {
+    padding: 1.5rem 1rem;
+  }
+
+  .dry-run-card h2 {
+    font-size: 1.375rem;
+  }
+
+  .dry-run-description {
+    font-size: 0.9375rem;
+  }
+
+  .dry-run-button {
+    width: 100%;
+    font-size: 1rem;
+  }
+
+  .section-divider::before,
+  .section-divider::after {
+    width: 35%;
+  }
+}

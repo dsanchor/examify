@@ -25,6 +25,12 @@ router.get('/sources', async (_req: Request, res: Response) => {
   res.json(sources);
 });
 
+// POST /api/exams/dryrun - Create a dry run exam
+router.post('/dryrun', async (_req: Request, res: Response) => {
+  const exam = await examService.createDryRun();
+  res.status(201).json(exam);
+});
+
 // GET /api/exams/:id - Get an exam by ID
 router.get('/:id', validateParams(idParamSchema), async (req: Request, res: Response) => {
   const exam = await examService.getById(req.params.id);

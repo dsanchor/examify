@@ -109,6 +109,11 @@ export const examsApi = {
     const { data } = await api.get('/exams/sources');
     return data;
   },
+
+  createDryRun: async (): Promise<Exam> => {
+    const { data } = await api.post('/exams/dryrun');
+    return data;
+  },
 };
 
 // Tests

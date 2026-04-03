@@ -14,6 +14,7 @@ export default function ExamCreate() {
   const [answerCount, setAnswerCount] = useState(4);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [creatingDryRun, setCreatingDryRun] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -73,6 +74,19 @@ export default function ExamCreate() {
     return count;
   };
 
+  const handleDryRun = async () => {
+    try {
+      setCreatingDryRun(true);
+      setError('');
+      const exam = await examsApi.createDryRun();
+      navigate(`/tests/start/${exam.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create dry run exam');
+    } finally {
+      setCreatingDryRun(false);
+    }
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (selectedSourceIds.length === 0) {
@@ -108,6 +122,32 @@ export default function ExamCreate() {
       <h1>Create Exam</h1>
 
       {error && <div className="alert alert-error">{error}</div>}
+
+      {sources.length > 0 && (
+        <div className="dry-run-section">
+          <div className="dry-run-card card">
+            <div className="dry-run-header">
+              <span className="dry-run-icon">🎯</span>
+              <h2>Certification Dry Run</h2>
+            </div>
+            <p className="dry-run-description">
+              Simulate a real certification exam: 120 questions + 9 reserve, 120 minute timer, 
+              questions from all available sources.
+            </p>
+            <button
+              type="button"
+              className="btn btn-primary btn-lg dry-run-button"
+              onClick={handleDryRun}
+              disabled={creatingDryRun}
+            >
+              {creatingDryRun ? 'Creating...' : '🚀 Start Dry Run'}
+            </button>
+          </div>
+          <div className="section-divider">
+            <span>— or create a custom exam —</span>
+          </div>
+        </div>
+      )}
 
       {sources.length === 0 ? (
         <div className="empty-state">
