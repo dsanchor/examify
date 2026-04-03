@@ -170,6 +170,7 @@ body {
 .all-questions-container {
   max-width: 800px;
   margin: 0 auto;
+  padding-top: 1.5rem;
 }
 
 .question-card {
@@ -241,8 +242,13 @@ body {
 .test-toolbar.sticky {
   position: sticky;
   top: 0;
-  z-index: 50;
+  z-index: 100;
   background: var(--surface);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 0;
+  margin-bottom: 0;
+  border-left: none;
+  border-right: none;
 }
 
 /* ===== Buttons ===== */
@@ -889,6 +895,7 @@ body {
   grid-template-columns: 1fr 240px;
   gap: 1.5rem;
   align-items: start;
+  padding-top: 1.5rem;
 }
 
 .question-panel {
