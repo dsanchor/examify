@@ -76,7 +76,7 @@ class AIService {
       ],
       model: config.ai.deployment,
       temperature: 0.3,
-      max_tokens: 16000,
+      max_completion_tokens: 16000,
       response_format: { type: 'json_object' },
     });
 
@@ -183,7 +183,7 @@ Generate diverse questions covering different aspects of the content.`,
       ],
       model: config.ai.deployment,
       temperature: 0.5,
-      max_tokens: 8000,
+      max_completion_tokens: 8000,
       response_format: { type: 'json_object' },
     });
 
