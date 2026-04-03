@@ -1,7 +1,7 @@
 # Multi-stage build for React + Node.js application (npm workspaces)
 
 # Stage 1: Build client
-FROM node:18-alpine AS client-builder
+FROM node:20-alpine AS client-builder
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY client/package.json ./client/
@@ -10,7 +10,7 @@ COPY client/ ./client/
 RUN npm run build --workspace=client
 
 # Stage 2: Build server
-FROM node:18-alpine AS server-builder
+FROM node:20-alpine AS server-builder
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY server/package.json ./server/
@@ -19,7 +19,7 @@ COPY server/ ./server/
 RUN npm run build --workspace=server
 
 # Stage 3: Production image
-FROM node:18-alpine AS production
+FROM node:20-alpine AS production
 WORKDIR /app
 
 # Install production-only server dependencies

@@ -32,7 +32,7 @@ AI-powered exam generation from PDF study materials using Azure AI Foundry and C
 
 ## Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 20+ and npm
 - Docker (for local containerized development)
 - Azure subscription
 - Azure AI Foundry model deployment (gpt-5.4-mini)
