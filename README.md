@@ -68,7 +68,6 @@ COSMOS_TESTS_CONTAINER=tests
 AZURE_AI_ENDPOINT=https://your-foundry-endpoint.openai.azure.com/
 AZURE_AI_KEY=your-ai-key
 AZURE_AI_DEPLOYMENT=gpt-5.4-mini
-AZURE_AI_API_VERSION=2024-02-15-preview
 
 PORT=3000
 NODE_ENV=development
@@ -235,8 +234,7 @@ az containerapp create \
     "COSMOS_TESTS_CONTAINER=tests" \
     "AZURE_AI_ENDPOINT=$AZURE_AI_ENDPOINT" \
     "AZURE_AI_KEY=$AZURE_AI_KEY" \
-    "AZURE_AI_DEPLOYMENT=$AZURE_AI_DEPLOYMENT" \
-    "AZURE_AI_API_VERSION=$AZURE_AI_API_VERSION"
+    "AZURE_AI_DEPLOYMENT=$AZURE_AI_DEPLOYMENT"
 
 # Get the app URL
 az containerapp show \
