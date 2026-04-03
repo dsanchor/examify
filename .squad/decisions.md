@@ -93,6 +93,27 @@ Switched to GitHub Container Registry (ghcr.io) with automated GitHub Actions wo
 
 ---
 
+### 7. Fix @azure/cosmos Lockfile Hoisting
+**Date**: 2026-04-03  
+**Status**: ✅ Implemented  
+**Decision Maker**: Mike (Backend)
+
+Fixed corrupted `package-lock.json` entry where `@azure/cosmos` was placed in `server/node_modules/` without `resolved`/`integrity` fields — an artifact of `npm install --force` on OneDrive-synced paths.
+
+**Decision**: Surgically moved the `@azure/cosmos` entry from `server/node_modules/@azure/cosmos` to `node_modules/@azure/cosmos` with proper registry metadata. This restores npm's hoisting mechanism, allowing `@azure/keyvault-keys` to be properly installed during Docker's `npm ci --omit=dev`.
+
+**Rationale**: 
+- Prevents Docker builds from failing due to missing dependencies
+- Ensures production images have all required Azure SDK packages
+- Identifies corruption pattern for future prevention
+
+**Warning for Team**: After any `npm install --force` operation, verify the lockfile doesn't have packages in workspace-scoped `node_modules/` paths (e.g., `server/node_modules/`, `client/node_modules/`) with missing `resolved` fields. These indicate corruption that will break CI/CD.
+
+**Files Modified**: 
+- `package-lock.json`
+
+---
+
 ## Governance
 
 - All meaningful changes require team consensus

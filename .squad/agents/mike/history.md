@@ -66,3 +66,15 @@ Agent Mike initialized and ready for work.
 
 3. **Private Registry Guidance**: Added a callout in the README explaining how to configure Container Apps to pull from a private ghcr.io package (registry credentials with a PAT that has `read:packages` scope).
 
+### Lockfile Corruption: @azure/cosmos Missing Resolution Metadata
+
+1. **Root Cause**: Running `npm install --force` on the OneDrive-synced path produced a corrupted lockfile where `@azure/cosmos` was stuck in `server/node_modules/@azure/cosmos` with missing `resolved` and `integrity` fields. This prevented npm from properly hoisting the package and its dependency tree during `npm ci --omit=dev` in Docker.
+
+2. **Symptom**: Container crashed at startup with `Cannot find module '@azure/keyvault-keys'` — a hard dependency of `@azure/cosmos` that wasn't installed because cosmos itself was malformed in the lockfile.
+
+3. **Fix**: Moved the cosmos entry from `server/node_modules/@azure/cosmos` to `node_modules/@azure/cosmos` with proper `resolved` and `integrity` fields from the npm registry. This allows npm to hoist cosmos to root alongside `@azure/keyvault-keys`, where Node.js module resolution can find both.
+
+4. **Key Insight — Lockfile Corruption Pattern**: When `npm install --force` runs on problematic filesystems (OneDrive, network drives), it can produce lockfiles where packages land in workspace-nested `node_modules/` without registry metadata. These entries look valid to `npm ls` but fail during `npm ci` because npm can't resolve them properly. Always verify lockfile integrity after `--force` operations by checking for missing `resolved`/`integrity` fields on non-workspace packages.
+
+5. **Diagnostic Commands**: `python3 -c "import json; lock=json.load(open('package-lock.json')); [print(k) for k,v in lock['packages'].items() if k.startswith('server/node_modules/') and 'resolved' not in v]"` — finds lockfile entries in workspace node_modules without proper resolution metadata.
+
