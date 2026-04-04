@@ -74,6 +74,14 @@ NODE_ENV=development
 CLIENT_URL=http://localhost:5173
 ```
 
+Optional authentication variables:
+
+```
+AUTH_USER=admin              # Login username (default: admin)
+AUTH_PASSWORD=examify        # Login password (default: examify)
+SESSION_SECRET=change-me     # Session signing secret (change in production)
+```
+
 ### 3. Start Development Servers
 
 ```bash

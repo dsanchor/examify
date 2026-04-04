@@ -30,6 +30,12 @@ export const config = {
     },
   },
 
+  auth: {
+    username: optionalEnv('AUTH_USER', 'admin'),
+    password: optionalEnv('AUTH_PASSWORD', 'examify'),
+    sessionSecret: optionalEnv('SESSION_SECRET', 'examify-dev-secret-change-in-prod'),
+  },
+
   ai: {
     endpoint: requireEnv('AZURE_AI_ENDPOINT'),
     key: requireEnv('AZURE_AI_KEY'),

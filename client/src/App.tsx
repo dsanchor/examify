@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useAuth } from './contexts/AuthContext';
 import Layout from './components/Layout';
+import Login from './pages/Login';
 import Home from './pages/Home';
 import SourcesList from './pages/SourcesList';
 import SourceUpload from './pages/SourceUpload';
@@ -13,6 +15,16 @@ import TestHistory from './pages/TestHistory';
 import './App.css';
 
 export default function App() {
+  const { authenticated, loading } = useAuth();
+
+  if (loading) {
+    return <div className="loading-screen"><div className="loading-spinner" /></div>;
+  }
+
+  if (!authenticated) {
+    return <Login />;
+  }
+
   return (
     <BrowserRouter>
       <Layout>

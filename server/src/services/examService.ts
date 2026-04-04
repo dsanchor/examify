@@ -204,7 +204,7 @@ class ExamService {
 
     // Convert to ExamQuestions, marking reserve questions
     const examQuestions: ExamQuestion[] = selectedQuestions.map(({ question, sourceId }, index) => {
-      const examQ = padOptions(question, 4); // Dry runs always use 4 answers
+      const examQ = padOptions(question, 3); // Dry runs use 3 answers
       examQ.sourceId = sourceId;
       examQ.isReserve = index >= actualMain; // Questions after actualMain are reserves
       return examQ;

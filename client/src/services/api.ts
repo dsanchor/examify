@@ -15,6 +15,7 @@ import type {
 const api = axios.create({
   baseURL: '/api',
   headers: { 'Content-Type': 'application/json' },
+  withCredentials: true,
 });
 
 // Sources
@@ -158,6 +159,22 @@ export const testsApi = {
 
   getResult: async (sessionId: string): Promise<TestResult> => {
     const { data } = await api.get(`/tests/${sessionId}/result`);
+    return data;
+  },
+};
+
+// Auth
+export const authApi = {
+  login: async (username: string, password: string) => {
+    const { data } = await api.post('/auth/login', { username, password });
+    return data;
+  },
+  logout: async () => {
+    const { data } = await api.post('/auth/logout');
+    return data;
+  },
+  me: async () => {
+    const { data } = await api.get('/auth/me');
     return data;
   },
 };

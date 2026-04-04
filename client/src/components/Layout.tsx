@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 interface LayoutProps {
   children: ReactNode;
@@ -7,6 +8,7 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
+  const { username, logout } = useAuth();
 
   const navLinks = [
     { to: '/', label: 'Home' },
@@ -34,6 +36,10 @@ export default function Layout({ children }: LayoutProps) {
               </Link>
             ))}
           </nav>
+          <div className="user-menu">
+            <span className="user-name">{username}</span>
+            <button onClick={logout} className="logout-btn">Logout</button>
+          </div>
         </div>
       </header>
       <main className="app-main">
