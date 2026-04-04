@@ -15,6 +15,9 @@ import testsRouter from './routes/tests';
 
 const app = express();
 
+// Trust reverse proxy (Azure Container Apps, etc.) for secure cookies
+app.set('trust proxy', 1);
+
 // Security & parsing middleware
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({
@@ -33,6 +36,7 @@ app.use(session({
   cookie: {
     secure: config.nodeEnv === 'production',
     httpOnly: true,
+    sameSite: 'lax',
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
   },
 }));
@@ -48,7 +52,13 @@ app.post('/api/auth/login', (req, res) => {
   if (username === config.auth.username && password === config.auth.password) {
     req.session.authenticated = true;
     req.session.username = username;
-    res.json({ authenticated: true, username });
+    req.session.save((err) => {
+      if (err) {
+        res.status(500).json({ error: 'Session save failed' });
+        return;
+      }
+      res.json({ authenticated: true, username });
+    });
   } else {
     res.status(401).json({ error: 'Invalid credentials' });
   }
