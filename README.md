@@ -262,29 +262,6 @@ az containerapp update \
   --image $IMAGE
 ```
 
-#### 7. Enable Easy Auth (Microsoft Entra ID)
-
-Azure Container Apps Easy Auth acts as a reverse proxy that authenticates users before requests reach the container. The app reads injected headers (`x-ms-client-principal-id`, `x-ms-client-principal-name`) to identify users — no auth logic in app code.
-
-```bash
-# Enable Easy Auth with Microsoft Entra ID
-az containerapp auth microsoft update \
-  --name $APP_NAME \
-  --resource-group $RESOURCE_GROUP \
-  --client-id <app-registration-client-id> \
-  --issuer https://login.microsoftonline.com/<tenant-id>/v2.0 \
-  --yes
-
-# Exclude health endpoint from auth
-az containerapp auth update \
-  --name $APP_NAME \
-  --resource-group $RESOURCE_GROUP \
-  --unauthenticated-client-action AllowAnonymous \
-  --excluded-paths "/health"
-```
-
-The `/api/auth/me` endpoint returns the authenticated user's info (or `{ authenticated: false }` if no Easy Auth headers are present).
-
 ## CI/CD
 
 A GitHub Actions workflow (`.github/workflows/build-push.yml`) automatically builds and pushes the Docker image to **GitHub Container Registry** (`ghcr.io`).

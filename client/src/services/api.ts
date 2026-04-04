@@ -15,7 +15,6 @@ import type {
 const api = axios.create({
   baseURL: '/api',
   headers: { 'Content-Type': 'application/json' },
-  withCredentials: true,
 });
 
 // Sources
