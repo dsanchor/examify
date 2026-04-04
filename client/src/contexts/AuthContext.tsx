@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { setAuthToken, setEasyAuthEnabled } from '../services/api';
 
 interface AuthUser {
   userId: string;
@@ -36,13 +35,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             userId: principal.user_id || '',
             userDetails: nameClaim?.val || principal.user_id || 'User',
           });
-          
-          // Forward auth token for API calls
-          const token = principal.access_token || principal.id_token;
-          if (token) {
-            setAuthToken(token);
-            setEasyAuthEnabled(true);
-          }
         }
       })
       .catch(() => {
