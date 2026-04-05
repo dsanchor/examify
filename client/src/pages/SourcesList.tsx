@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { sourcesApi } from '../services/api';
 import type { Source } from '../types';
@@ -7,10 +7,20 @@ export default function SourcesList() {
   const [sources, setSources] = useState<Source[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
+  const [editSourceTitle, setEditSourceTitle] = useState('');
+  const editInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadSources();
   }, []);
+
+  useEffect(() => {
+    if (editingSourceId && editInputRef.current) {
+      editInputRef.current.focus();
+      editInputRef.current.select();
+    }
+  }, [editingSourceId]);
 
   const loadSources = async () => {
     try {
@@ -31,6 +41,42 @@ export default function SourcesList() {
       setSources((prev) => prev.filter((s) => s.id !== id));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete source');
+    }
+  };
+
+  const startEdit = (source: Source) => {
+    setEditingSourceId(source.id);
+    setEditSourceTitle(source.title);
+  };
+
+  const cancelEdit = () => {
+    setEditingSourceId(null);
+    setEditSourceTitle('');
+  };
+
+  const saveEdit = async () => {
+    if (!editingSourceId) return;
+    const trimmed = editSourceTitle.trim();
+    if (!trimmed) return;
+
+    try {
+      const updated = await sourcesApi.update(editingSourceId, { title: trimmed });
+      setSources((prev) =>
+        prev.map((s) => (s.id === editingSourceId ? { ...s, title: updated.title } : s))
+      );
+      setEditingSourceId(null);
+      setEditSourceTitle('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update title');
+    }
+  };
+
+  const handleEditKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveEdit();
+    } else if (e.key === 'Escape') {
+      cancelEdit();
     }
   };
 
@@ -74,7 +120,35 @@ export default function SourcesList() {
           {sources.map((source) => (
             <div key={source.id} className="card">
               <div className="card-header">
-                <h3>{source.title}</h3>
+                {editingSourceId === source.id ? (
+                  <div className="card-title-edit">
+                    <input
+                      ref={editInputRef}
+                      type="text"
+                      value={editSourceTitle}
+                      onChange={(e) => setEditSourceTitle(e.target.value)}
+                      onKeyDown={handleEditKeyDown}
+                      className="card-title-input"
+                    />
+                    <button className="btn btn-sm btn-primary" onClick={saveEdit}>
+                      Save
+                    </button>
+                    <button className="btn btn-sm" onClick={cancelEdit}>
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="card-title-row">
+                    <h3>{source.title}</h3>
+                    <button
+                      className="btn-icon"
+                      onClick={() => startEdit(source)}
+                      title="Rename source"
+                    >
+                      ✏️
+                    </button>
+                  </div>
+                )}
                 {statusBadge(source.status)}
               </div>
               <p className="card-description">{source.description || 'No description'}</p>

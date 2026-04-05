@@ -15,6 +15,7 @@ export default function ExamCreate() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [creatingDryRun, setCreatingDryRun] = useState(false);
+  const [sourceFilter, setSourceFilter] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -59,6 +60,37 @@ export default function ExamCreate() {
         ? prev.filter((id) => id !== chapterId)
         : [...prev, chapterId]
     );
+  };
+
+  const filteredSources = sources.filter((s) =>
+    s.title.toLowerCase().includes(sourceFilter.toLowerCase())
+  );
+
+  const selectAllVisibleSources = () => {
+    const visibleIds = filteredSources.map((s) => s.id);
+    setSelectedSourceIds((prev) => [...new Set([...prev, ...visibleIds])]);
+  };
+
+  const deselectAllVisibleSources = () => {
+    const visibleIds = new Set(filteredSources.map((s) => s.id));
+    setSelectedSourceIds((prev) => prev.filter((id) => !visibleIds.has(id)));
+    // Clean up chapter selections for deselected sources
+    const chapterIdsToRemove = new Set(
+      filteredSources.flatMap((s) => s.chapters.map((c) => c.id))
+    );
+    setSelectedChapterIds((prev) =>
+      prev.filter((cid) => !chapterIdsToRemove.has(cid))
+    );
+  };
+
+  const selectAllChapters = (source: AvailableSource) => {
+    const chapterIds = source.chapters.map((c) => c.id);
+    setSelectedChapterIds((prev) => [...new Set([...prev, ...chapterIds])]);
+  };
+
+  const deselectAllChapters = (source: AvailableSource) => {
+    const chapterIds = new Set(source.chapters.map((c) => c.id));
+    setSelectedChapterIds((prev) => prev.filter((cid) => !chapterIds.has(cid)));
   };
 
   const availableQuestionCount = (): number => {
@@ -183,8 +215,39 @@ export default function ExamCreate() {
 
           <div className="form-group">
             <label>Select Sources *</label>
+            <div className="source-toolbar">
+              <input
+                type="text"
+                className="source-filter-input"
+                value={sourceFilter}
+                onChange={(e) => setSourceFilter(e.target.value)}
+                placeholder="🔍 Filter sources..."
+                disabled={submitting}
+              />
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={selectAllVisibleSources}
+                disabled={submitting || filteredSources.length === 0}
+              >
+                Select All
+              </button>
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={deselectAllVisibleSources}
+                disabled={submitting || filteredSources.length === 0}
+              >
+                Deselect All
+              </button>
+            </div>
+            {sourceFilter && (
+              <p className="source-filter-count">
+                Showing {filteredSources.length} of {sources.length} sources
+              </p>
+            )}
             <div className="source-selection">
-              {sources.map((source) => (
+              {filteredSources.map((source) => (
                 <div key={source.id} className="source-select-card">
                   <label className="checkbox-label">
                     <input
@@ -199,7 +262,28 @@ export default function ExamCreate() {
 
                   {selectedSourceIds.includes(source.id) && (
                     <div className="chapter-selection">
-                      <p className="hint">Select specific chapters (or leave all unchecked for all):</p>
+                      <div className="chapter-hint-row">
+                        <p className="hint">Select specific chapters (or leave all unchecked for all):</p>
+                        <span className="chapter-bulk-actions">
+                          <button
+                            type="button"
+                            className="btn-link"
+                            onClick={() => selectAllChapters(source)}
+                            disabled={submitting}
+                          >
+                            Select All
+                          </button>
+                          <span className="btn-link-divider">|</span>
+                          <button
+                            type="button"
+                            className="btn-link"
+                            onClick={() => deselectAllChapters(source)}
+                            disabled={submitting}
+                          >
+                            Deselect All
+                          </button>
+                        </span>
+                      </div>
                       {source.chapters.map((chapter) => (
                         <label key={chapter.id} className="checkbox-label chapter-checkbox">
                           <input
