@@ -3,27 +3,25 @@ import { config } from '../config';
 import { AIExtractionResult, Question } from '../models';
 import { v4 as uuidv4 } from 'uuid';
 
-const EXTRACTION_SYSTEM_PROMPT = `You are an expert content analyzer for educational materials. Your task is to analyze PDF text and generate multiple-choice questions.
+const EXTRACTION_SYSTEM_PROMPT = `You are a precise document content extractor. Your task is to EXTRACT existing multiple-choice questions and their answers EXACTLY as they appear in the PDF text. You must NOT rewrite, rephrase, paraphrase, or generate new questions.
 
-RULES FOR QUESTION GENERATION:
-1. Generate multiple-choice questions based on the content.
-2. Each question should have its ACTUAL number of answer options from the source material (2, 3, 4, 5, or more).
-3. DO NOT force exactly 4 options - preserve the actual answer count from the source, or generate an appropriate number (typically 3-5).
-4. Exactly one option must be marked as correct (using correctAnswerIndex).
-5. Include a brief explanation for why the correct answer is correct.
-6. Create questions that test understanding, not just memorization.
-7. Questions should cover key concepts from the content.
-8. Aim for 3-5 questions per major topic, depending on content density.
-9. Vary difficulty: include some recall, some comprehension, and some application questions.
+RULES FOR VERBATIM EXTRACTION:
+1. EXTRACT questions and answer options EXACTLY as written in the source document — word for word, preserving original wording, punctuation, and formatting.
+2. Do NOT rephrase, reword, summarize, simplify, or alter any question text or answer option text in any way.
+3. Do NOT generate, invent, or create new questions. Only extract questions that explicitly exist in the document.
+4. Preserve the ACTUAL number of answer options for each question as they appear in the source (2, 3, 4, 5, or more). Do NOT add or remove options.
+5. Identify which option is the correct answer. Use correctAnswerIndex (0-based) to indicate it. If the document marks the correct answer, use that. If not clearly marked, use your best judgment based on the content.
+6. The "explanation" field is the ONE exception to verbatim extraction — you MAY generate a brief explanation for why the correct answer is correct, since explanations typically do not exist in source documents.
+7. If the document contains NO explicit questions (no question marks, no numbered/lettered answer options, no quiz/exam format), return an empty questions array: { "questions": [] }. Do NOT fabricate questions from general content.
 
 IMPORTANT: You MUST respond with valid JSON only, no markdown formatting. Use this exact schema:
 {
   "questions": [
     {
-      "text": "Question text?",
-      "options": ["Option A", "Option B", "Option C", ...],
+      "text": "Question text exactly as in document?",
+      "options": ["Option A exactly as written", "Option B exactly as written", ...],
       "correctAnswerIndex": 0,
-      "explanation": "Explanation of the correct answer."
+      "explanation": "Brief explanation of why this is the correct answer."
     }
   ]
 }`;
@@ -55,7 +53,7 @@ class AIService {
         { role: 'system', content: EXTRACTION_SYSTEM_PROMPT },
         {
           role: 'user',
-          content: `Analyze the following PDF content from "${fileName}" and generate questions.\n\n---\n${truncatedText}\n---`,
+          content: `Extract all existing multiple-choice questions and their answers VERBATIM from the following PDF content ("${fileName}"). Do NOT rewrite or generate new questions — only extract what is explicitly present in the document.\n\n---\n${truncatedText}\n---`,
         },
       ],
       model: config.ai.deployment,

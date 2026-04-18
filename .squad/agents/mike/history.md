@@ -192,3 +192,17 @@ Agent Mike initialized and ready for work.
 6. **CORS Credentials**: Verified `credentials: true` is already set in CORS config. Required for Easy Auth's cookie-based session management. No changes needed.
 
 7. **README Updated**: Added "Enable Easy Auth (Microsoft Entra ID)" section with `az containerapp auth microsoft update` and `az containerapp auth update` CLI commands for configuring Entra ID authentication and health endpoint exclusion.
+
+### 2026-04-18: Verbatim PDF Question Extraction — No Rewriting
+
+1. **Critical Prompt Change**: Rewrote `EXTRACTION_SYSTEM_PROMPT` in `server/src/services/aiService.ts` to enforce verbatim extraction. The AI must now EXTRACT existing questions and answers exactly as they appear in the PDF — word for word, preserving original wording, punctuation, and formatting. It must NOT rewrite, rephrase, paraphrase, or generate new questions.
+
+2. **User Prompt Aligned**: Updated the user-role message in `extractFromPdf` to say "Extract all existing multiple-choice questions and their answers VERBATIM" instead of "Analyze... and generate questions."
+
+3. **Empty Document Handling**: If the PDF contains no explicit questions (no question marks, no numbered/lettered answer options), the AI returns `{ "questions": [] }` instead of fabricating questions from general content.
+
+4. **Explanation Exception**: The `explanation` field is the only exception to verbatim extraction — the AI may generate explanations since they typically don't exist in source PDFs.
+
+5. **JSON Schema Unchanged**: Output format remains identical: `{ "questions": [{ text, options, correctAnswerIndex, explanation }] }`. No model or API changes needed.
+
+6. **User Directive**: This was a critical user requirement — the extraction agent must preserve source fidelity. Questions and answers must match the PDF exactly.
