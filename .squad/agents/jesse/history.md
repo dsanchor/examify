@@ -195,3 +195,14 @@ Initial setup complete.
 
 **TypeScript Verification:**
 - Ran `npx tsc --noEmit` in client directory — no errors
+
+### 2026-04-18: Backend Update — Verbatim PDF Extraction
+
+**From Mike (Backend)**: Updated the PDF extraction AI prompt to enforce verbatim extraction. The AI now extracts questions and answers exactly as they appear in source PDFs — no rewriting, rephrasing, or fabrication. This preserves source fidelity and meets the user's critical requirement.
+
+**Impact for Frontend/QA**:
+- Extracted questions will now match PDFs word-for-word
+- Explanations remain AI-generated (exception)
+- Empty PDFs (no questions) will return no results instead of fabricated content
+- No API or UI changes — this is an internal prompt refinement
+- When testing PDFs, verify extracted text matches source exactly

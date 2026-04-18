@@ -141,6 +141,212 @@ When OneDrive filesystem corruption affected the lockfile, the initial surgical 
 
 ---
 
+### 9. Migrate from Azure REST SDK to OpenAI SDK
+**Date**: 2026-04-04  
+**Status**: ✅ Implemented  
+**Decision Maker**: Mike (Backend)
+
+Migrated the Azure AI Foundry integration from `@azure-rest/ai-inference` + `@azure/core-auth` to the standard `openai` npm package (v4.77.3).
+
+**Rationale**: 
+- OpenAI SDK is industry standard with better documentation and maintenance
+- Cleaner API surface compared to Azure REST SDK beta
+- Azure AI Foundry endpoint fully compatible with OpenAI SDK
+- Direct property access and automatic error handling simplify code
+
+**Files Modified**: 
+- `server/src/services/aiService.ts` — refactored client init, API calls, response handling
+- `server/src/config/index.ts` — removed `apiVersion` field
+- `server/package.json` — dependency swap
+- `package-lock.json` — regenerated
+
+**Trade-offs**: None — strict improvement in ergonomics and maintenance.
+
+---
+
+### 10. Remove AI Auto-Detection of Chapters
+**Date**: 2026-04-03  
+**Status**: ✅ Implemented  
+**Decision Maker**: Mike (Backend), per user directive (copilot-directive-20260403T211558)
+
+Removed AI chapter auto-detection from PDF processing. Chapters are now manually created by users and serve as organizational labels with no stored content.
+
+**Key Changes**:
+- `Chapter` model: Removed `content` field. Now just `{ id, title, order }`
+- `Question.chapterId`: Made optional (`string | null | undefined`)
+- `EXTRACTION_SYSTEM_PROMPT`: Removed all chapter extraction rules
+- `extractFromPdf`: Returns `{ questions }` only, no chapters
+- New endpoints: POST/PUT/DELETE chapters, PUT link question to chapter
+- `addQuestions` signature simplified: `(sourceId, count)` instead of `(sourceId, chapterId, count)`
+
+**Rationale**: 
+- AI-generated chapters were unreliable (hallucination or forced "Uncategorized")
+- Manual chapters give users full control over content organization
+- Chapters as lightweight labels don't require document re-parsing
+- Questions are independent of chapters; linking is optional and reversible
+
+**Files Modified**: 
+- `server/src/models/index.ts`
+- `server/src/services/aiService.ts`
+- `server/src/services/sourceService.ts`
+- `server/src/services/examService.ts`
+- `server/src/routes/sources.ts`
+- `server/src/middleware/validation.ts`
+
+---
+
+### 11. Manual Chapter Management UI
+**Date**: 2026-04-04  
+**Status**: ✅ Implemented  
+**Decision Maker**: Jesse (Frontend)
+
+Replaced the old read-only chapter display with a full manual chapter management UI on the Source Detail page. Users can create, edit, delete chapters, and assign/unassign questions via dropdown.
+
+**Files Modified**: 
+- `client/src/types/index.ts`
+- `client/src/services/api.ts`
+- `client/src/pages/SourceDetail.tsx`
+- `client/src/pages/ExamCreate.tsx`
+- `client/src/App.css`
+
+**Rationale**: Complements backend chapter CRUD endpoints (Decision #10). Provides accessible UX for manual chapter management.
+
+---
+
+### 12. Dry Run Exam Feature — Backend Implementation
+**Date**: 2026-04-04  
+**Status**: ✅ Implemented  
+**Decision Maker**: Mike (Backend)
+
+Implemented "Dry Run" exam mode for certification practice: automatically draws 120 main + 9 reserve questions from all ready sources.
+
+**Key Features**:
+- `isDryRun?: boolean` on Exam model
+- `isReserve?: boolean` on ExamQuestion model
+- `createDryRun()` service method: auto-selects all ready sources, randomly picks 129 questions, splits proportionally if fewer available
+- Always uses 4 answer options
+- Auto-generated title: "Dry Run — {date}"
+- New endpoint: `POST /api/exams/dryrun` (no body required)
+
+**Rationale**: 
+- Reserve questions marked with flag for frontend customization (separate display, complaint validation, analytics)
+- All sources by default simulates real certification exams
+- Single exam entity simplifies data model
+- Proportional split on low question count ensures feature works with limited data
+
+**Files Modified**: 
+- `server/src/models/index.ts`
+- `server/src/services/examService.ts`
+- `server/src/routes/exams.ts`
+
+---
+
+### 13. Dry Run Exam Feature — Frontend UX Design
+**Date**: 2026-04-04  
+**Status**: ✅ Implemented  
+**Decision Maker**: Jesse (Frontend)
+
+Created prominent "Dry Run" section at the top of ExamCreate page with one-click access to certification practice exams. Fixed timer (120 minutes), reserve question indicators, and visual separators for clarity.
+
+**Key UX Choices**:
+- Positioned first on page for immediate visibility
+- Gradient card with icon for visual hierarchy
+- No configuration required — single button click
+- Fixed timer (read-only) on TestStart for dry runs
+- Visual separators and "(Reserve)" labels distinguish last 9 questions
+
+**Rationale**: 
+- Discoverability: Users see dry run immediately upon landing
+- Simplicity: Zero configuration reduces friction
+- Clarity: Description explains 120+9 questions, 120 minutes
+- Consistency: Same navigation as custom exams
+
+**Files Modified**: 
+- `client/src/types/index.ts` — Added `isDryRun` and `isReserve` flags
+- `client/src/services/api.ts` — Added `createDryRun()` method
+- `client/src/pages/ExamCreate.tsx` — Added dry run section
+- `client/src/pages/TestStart.tsx` — Preset timer and dry run badge
+- `client/src/pages/TestTake.tsx` — Reserve question indicators
+- `client/src/App.css` — Styling for dry run components
+
+---
+
+### 14. Test Result Reconstruction Endpoint
+**Date**: 2026-04-04  
+**Status**: ✅ Implemented  
+**Decision Maker**: Mike (Backend)
+
+Added `GET /api/tests/:id/result` endpoint to reconstruct `TestResult` from completed `TestSession` on demand, solving loss of result data on page refresh.
+
+**Solution**: Service method `testService.getResult(sessionId)` reconstructs `TestResult` by:
+- Fetching TestSession and validating it's completed
+- Comparing user answers to question answers
+- Calculating score, correctAnswers, timeTakenSeconds
+- Using deterministic result ID (`result-${sessionId}`)
+
+**Rationale**: 
+- TestSessions already contain all data needed to reconstruct results
+- Persisting TestResults to DB would be redundant and waste storage
+- On-demand reconstruction keeps data model simpler
+- Results always accurate reflections of session data even if scoring logic changes
+
+**Files Modified**: 
+- `server/src/services/testService.ts`
+- `server/src/routes/tests.ts`
+- `server/src/middleware/validation.ts`
+
+---
+
+### 15. Easy Auth Header Reading Middleware
+**Date**: 2026-04-04  
+**Status**: ✅ Implemented  
+**Decision Maker**: Mike (Backend), requested by dsanchor
+
+Added lightweight, non-blocking Express middleware to read Azure Container Apps Easy Auth headers (`x-ms-client-principal-id`, `x-ms-client-principal-name`) and attach user info to `req.user`.
+
+**Implementation**:
+- New file: `server/src/middleware/auth.ts` — `easyAuthMiddleware` + `EasyAuthUser` interface
+- Global Express type augmentation: `declare global` extends Request with optional `user?: EasyAuthUser`
+- Non-blocking: Requests without headers pass through silently
+- New endpoint: `GET /api/auth/me` returns `{ authenticated, user }`
+
+**Rationale**: 
+- Separation of concerns: Authentication enforcement at proxy level (Easy Auth config), app only reads identity
+- Non-blocking: Keeps local dev working without auth, avoids duplicating proxy-level enforcement
+- Simple type augmentation: Every route handler gets typed `req.user` access
+
+**Trade-offs**: No auth enforcement in code — app trusts proxy completely. Intentional by design. If deployed without Easy Auth, all requests are anonymous.
+
+**Files Modified**: 
+- `server/src/middleware/auth.ts` (new)
+- `server/src/index.ts`
+- `README.md`
+
+---
+
+### 16. Verbatim PDF Question Extraction
+**Date**: 2026-04-18  
+**Status**: ✅ Implemented  
+**Decision Maker**: Mike (Backend), per user directive (copilot-directive-20260418T092951)
+
+Updated `EXTRACTION_SYSTEM_PROMPT` to enforce verbatim extraction of questions and answers from PDFs — word for word, no rewriting or paraphrasing.
+
+**Implementation**:
+- `EXTRACTION_SYSTEM_PROMPT`: Verbatim-first extraction rules, no generation
+- User prompt in `extractFromPdf`: "Extract all existing multiple-choice questions and their answers VERBATIM"
+- Empty PDFs return `{ "questions": [] }` instead of fabricating content
+- Explanations remain AI-generated (exception — typically absent in PDFs)
+
+**Rationale**: 
+- Source fidelity critical: Users trust extracted content matches their PDFs
+- Rephrased questions change meaning, difficulty, intent
+- User-critical directive overrides previous "generate questions" behavior
+
+**Files Modified**: 
+- `server/src/services/aiService.ts`
+
+---
+
 ## Governance
 
 - All meaningful changes require team consensus
