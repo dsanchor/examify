@@ -11,8 +11,7 @@ RULES FOR VERBATIM EXTRACTION:
 3. Do NOT generate, invent, or create new questions. Only extract questions that explicitly exist in the document.
 4. Preserve the ACTUAL number of answer options for each question as they appear in the source (2, 3, 4, 5, or more). Do NOT add or remove options.
 5. Identify which option is the correct answer. Use correctAnswerIndex (0-based) to indicate it. If the document marks the correct answer, use that. If not clearly marked, use your best judgment based on the content.
-6. The "explanation" field is the ONE exception to verbatim extraction — you MAY generate a brief explanation for why the correct answer is correct, since explanations typically do not exist in source documents.
-7. If the document contains NO explicit questions (no question marks, no numbered/lettered answer options, no quiz/exam format), return an empty questions array: { "questions": [] }. Do NOT fabricate questions from general content.
+6. If the document contains NO explicit questions (no question marks, no numbered/lettered answer options, no quiz/exam format), return an empty questions array: { "questions": [] }. Do NOT fabricate questions from general content.
 
 IMPORTANT: You MUST respond with valid JSON only, no markdown formatting. Use this exact schema:
 {
@@ -20,8 +19,7 @@ IMPORTANT: You MUST respond with valid JSON only, no markdown formatting. Use th
     {
       "text": "Question text exactly as in document?",
       "options": ["Option A exactly as written", "Option B exactly as written", ...],
-      "correctAnswerIndex": 0,
-      "explanation": "Brief explanation of why this is the correct answer."
+      "correctAnswerIndex": 0
     }
   ]
 }`;
@@ -74,7 +72,6 @@ class AIService {
         text: string;
         options: string[];
         correctAnswerIndex: number;
-        explanation: string;
       }[];
     };
 
@@ -83,7 +80,7 @@ class AIService {
       text: q.text,
       options: q.options,
       correctAnswerIndex: q.correctAnswerIndex,
-      explanation: q.explanation,
+      explanation: '',
     }));
 
     return { questions };
@@ -115,8 +112,7 @@ class AIService {
     {
       "text": "Question text?",
       "options": ["A", "B", "C", ...],
-      "correctAnswerIndex": 0,
-      "explanation": "Why this is correct."
+      "correctAnswerIndex": 0
     }
   ]
 }`,
@@ -149,7 +145,6 @@ Generate diverse questions covering different aspects of the content.`,
         text: string;
         options: string[];
         correctAnswerIndex: number;
-        explanation: string;
       }[];
     };
 
@@ -157,7 +152,7 @@ Generate diverse questions covering different aspects of the content.`,
       text: q.text,
       options: q.options,
       correctAnswerIndex: q.correctAnswerIndex,
-      explanation: q.explanation,
+      explanation: '',
     }));
   }
 }

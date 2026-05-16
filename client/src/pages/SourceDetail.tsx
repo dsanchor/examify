@@ -353,7 +353,7 @@ export default function SourceDetail() {
                           </li>
                         ))}
                       </ul>
-                      <p className="explanation">💡 {q.explanation}</p>
+
                       <button
                         className="btn btn-sm btn-danger"
                         onClick={() => handleDeleteQuestion(q.id)}

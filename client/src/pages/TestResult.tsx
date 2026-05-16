@@ -134,7 +134,7 @@ export default function TestResult() {
                 <li className="not-answered">⚠ Not answered</li>
               )}
             </ul>
-            <p className="explanation">💡 {qr.explanation}</p>
+
           </div>
         ))}
       </div>

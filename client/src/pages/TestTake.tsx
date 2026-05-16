@@ -357,7 +357,7 @@ function OneByOneMode({
               <div className="feedback-header">
                 {isCorrect ? '✅ Correct!' : '❌ Incorrect'}
               </div>
-              <p className="explanation">💡 {question.explanation}</p>
+
             </div>
           )}
 
