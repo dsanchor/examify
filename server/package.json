@@ -8,7 +8,8 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "lint": "eslint src --ext .ts",
-    "test": "jest"
+    "test": "jest",
+    "migrate:strip-labels": "ts-node src/scripts/migrateStripOptionLabels.ts"
   },
   "dependencies": {
     "@azure/core-rest-pipeline": "^1.12.0",

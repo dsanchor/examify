@@ -12,17 +12,32 @@ RULES FOR VERBATIM EXTRACTION:
 4. Preserve the ACTUAL number of answer options for each question as they appear in the source (2, 3, 4, 5, or more). Do NOT add or remove options.
 5. Identify which option is the correct answer. Use correctAnswerIndex (0-based) to indicate it. If the document marks the correct answer, use that. If not clearly marked, use your best judgment based on the content.
 6. If the document contains NO explicit questions (no question marks, no numbered/lettered answer options, no quiz/exam format), return an empty questions array: { "questions": [] }. Do NOT fabricate questions from general content.
+7. For each answer option, extract ONLY THE TEXT of the option — do NOT include any leading label prefix such as "a)", "b)", "A.", "B.", "(a)", "(1)", "1.", "2)", etc. Extract the option content that follows the label, verbatim, without the label itself.
 
 IMPORTANT: You MUST respond with valid JSON only, no markdown formatting. Use this exact schema:
 {
   "questions": [
     {
       "text": "Question text exactly as in document?",
-      "options": ["Option A exactly as written", "Option B exactly as written", ...],
+      "options": ["Option text only, no leading label", "Option text only, no leading label", ...],
       "correctAnswerIndex": 0
     }
   ]
 }`;
+
+/**
+ * Strips a single leading option-label prefix from an answer option string.
+ * Handles: a) A) b. B. (a) (A) a- a: 1) 1. (1) 12) etc.
+ * A bare letter followed only by a space (e.g. "A pesar de...") is NOT stripped.
+ * Returns original text unchanged if stripping would produce an empty string.
+ */
+export function stripOptionLabel(text: string): string {
+  const stripped = text.replace(
+    /^(?:\(([A-Za-z]|\d{1,2})\)|([A-Za-z]|\d{1,2})[).\-:])(?!\d)[\s]*/,
+    ''
+  );
+  return stripped.length > 0 ? stripped : text;
+}
 
 class AIService {
   private client: OpenAI;
@@ -78,7 +93,7 @@ class AIService {
     const questions: Question[] = parsed.questions.map((q) => ({
       id: uuidv4(),
       text: q.text,
-      options: q.options,
+      options: q.options.map(stripOptionLabel),
       correctAnswerIndex: q.correctAnswerIndex,
       explanation: '',
     }));
@@ -150,7 +165,7 @@ Generate diverse questions covering different aspects of the content.`,
 
     return parsed.questions.map((q) => ({
       text: q.text,
-      options: q.options,
+      options: q.options.map(stripOptionLabel),
       correctAnswerIndex: q.correctAnswerIndex,
       explanation: '',
     }));

@@ -206,3 +206,54 @@ Initial setup complete.
 - Empty PDFs (no questions) will return no results instead of fabricated content
 - No API or UI changes — this is an internal prompt refinement
 - When testing PDFs, verify extracted text matches source exactly
+
+### 2026-07-27: Sources Page Pagination Bug Fix
+
+**Bug**: `SourcesList.tsx` only showed the first 20 sources. `sourcesApi.list()` calls `GET /sources` which is paginated (`PaginatedResponse<Source>` with `items`, `hasMore`, `total`, `page`, `pageSize`). The page called with no args defaulted to page 1, pageSize 20, and only set `setSources(result.items)` — no loop, no pagination controls.
+
+**Root Cause Context**: `ExamCreate.tsx` uses `examsApi.getAvailableSources()` which calls `GET /exams/sources` — a separate unpaginated endpoint that returns ALL sources. This is why exam creation always showed everything while the Sources list page did not.
+
+**Fix**: Replaced the single `sourcesApi.list()` call in `loadSources()` with a page-loop:
+- Start at page 1, accumulate `result.items` into `allItems: Source[]`
+- Continue while `result.hasMore` is true, incrementing page each iteration
+- Safety cap at 50 pages (1000 sources) to prevent infinite loops on API bugs
+- After loop completes, `setSources(allItems)` — all sources visible at once
+- Loading, error, and empty-state behavior unchanged
+- Delete/edit still mutate local `sources` array (unchanged pattern)
+
+**Files Modified**: `client/src/pages/SourcesList.tsx`
+
+**Key Pattern**: When a list page must show ALL items but the API is paginated, loop with `hasMore` — don't increase pageSize as the sole mechanism (brittle if total count grows). Safety cap prevents runaway loops.
+
+### 2026-07-27: Sources Page Pagination Fix
+
+**File**: `client/src/pages/SourcesList.tsx`
+
+Fixed SourcesList to display all sources instead of only the first 20. Originally, `loadSources()` called `sourcesApi.list()` once and set state with single page result — no pagination loop.
+
+**Root Cause**: Discrepancy with ExamCreate.tsx which uses `GET /exams/sources` (unpaginated, returns all). Users could see sources in exam creation that were invisible on Sources page.
+
+**Solution**: Refactored `loadSources()` to fetch all pages using `hasMore` loop:
+```ts
+const allItems: Source[] = [];
+let page = 1;
+const MAX_PAGES = 50;
+let hasMore = true;
+while (hasMore && page <= MAX_PAGES) {
+  const result = await sourcesApi.list(page, 20);
+  allItems.push(...result.items);
+  hasMore = result.hasMore;
+  page++;
+}
+setSources(allItems);
+```
+
+**Design Rationale**:
+- **Show Everything**: Matches exam creation UX; users expect complete source list
+- **No Pagination UI**: "Load More" button would fragment a management list; loop is silent and seamless
+- **Safety Cap**: 50-page limit (≤1000 sources at pageSize 20) prevents infinite loops
+- **Backward Compatible**: Loading/error/delete/edit states unchanged
+
+**Key Pattern**: When a list page must show ALL items but the API is paginated, loop with `hasMore` — don't increase pageSize as the sole mechanism (brittle if total count grows). Safety cap prevents runaway loops.
+
+**Note for Scaling**: If sources exceed ~1000, consider virtual scrolling or server-side filtering.

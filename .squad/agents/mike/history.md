@@ -212,3 +212,42 @@ Finalized the extraction prompt to enforce verbatim Q&A extraction. The AI must 
 5. **JSON Schema Unchanged**: Output format remains identical: `{ "questions": [{ text, options, correctAnswerIndex, explanation }] }`. No model or API changes needed.
 
 6. **User Directive**: This was a critical user requirement — the extraction agent must preserve source fidelity. Questions and answers must match the PDF exactly.
+
+## Learnings
+
+### 2026-07-27: Option Label Duplicate / Shuffle Mismatch Bug
+
+**Root Cause — Duplicate Labels**: The AI extraction prompt said to extract options "EXACTLY as written", so the model stored options with their embedded prefixes (`a)`, `b)`, `A.`, etc.). The React UI independently prepended its own letter by array position (`String.fromCharCode(65 + oi)`). Result: `A. a) …`, `B. b) …` on raw display.
+
+**Root Cause — Shuffle Mismatch**: `examService.ts` `shuffleArray` correctly reorders options and recomputes `correctAnswerIndex` by position — that logic is sound. But the embedded label in the option text (`a)`, `b)`, `c)`) did NOT follow the new shuffle order. After shuffle: position 0 shows label "A." but the text starts with "b)", yielding "A. b) …" and "B. c) …". This was the user-visible symptom.
+
+**Fix Location**: `server/src/services/aiService.ts`
+- Added and exported `stripOptionLabel(text: string): string` — a single-pass regex that removes leading prefixes (`a)`, `A.`, `(a)`, `a-`, `a:`, `1)`, `12.`, `(1)`, etc.) while leaving bare-word content (e.g. `A pesar de…`) untouched. Empty-result guard prevents stripping lone labels.
+- Regex hardened with `(?!\d)` negative lookahead so a numeric label separator (`.`) is not mistaken for a decimal point — `"3.5 millones de euros"` stays unchanged.
+- Applied `.map(stripOptionLabel)` at both `options` mapping sites: `extractFromPdf` and `generateAdditionalQuestions`.
+- Updated `EXTRACTION_SYSTEM_PROMPT` with rule 7 instructing the model to extract option TEXT ONLY (no leading labels). Regex is the safety net.
+
+**Existing-Data Migration**: `server/src/scripts/migrateStripOptionLabels.ts` — one-time migration that fetches all Source documents via `SELECT * FROM c`, applies `stripOptionLabel` to every option, and writes back only documents where at least one option actually changed. Supports `--dry-run` / `DRY_RUN=1` for a no-write preview. Idempotent: a second run produces zero updates. Added npm script `migrate:strip-labels`. Run order: dry-run first (`DRY_RUN=1 npm run migrate:strip-labels`), then live (`npm run migrate:strip-labels`).
+
+### 2026-07-27: Option Label Stripping — Completed & Merged to Decisions
+
+**Files Modified**: `server/src/services/aiService.ts`
+
+The stripOptionLabel fix is complete and integrated:
+
+1. **Export**: `export function stripOptionLabel(text: string): string`
+   - Regex: `/^(?:\(([A-Za-z]|\d{1,2})\)|([A-Za-z]|\d{1,2})[).\-:])(?!\d)[\s]*/`
+   - Handles all label formats (`a)`, `A.`, `(a)`, `a-`, `a:`, `1)`, `12)`)
+   - Safe: Bare letter + space passes through; empty result returns original; `(?!\d)` lookahead protects decimals
+
+2. **Applied At**:
+   - `extractFromPdf`: `options: q.options.map(stripOptionLabel)` (line 96)
+   - `generateAdditionalQuestions`: `options: q.options.map(stripOptionLabel)` (line 168)
+
+3. **Prompt Updated**: Added rule 7 to `EXTRACTION_SYSTEM_PROMPT` instructing AI to extract option text WITHOUT leading labels
+
+4. **Test Coverage**: Hank wrote comprehensive test suite (19+ cases). Awaiting jest installation (Decision #18).
+
+5. **Cross-Agent**: Jesse fixed Sources page pagination (Decision #19). Hank awaiting jest deps install (Decision #18).
+
+**Decision Record**: Documented as Decision #17 in `.squad/decisions.md`. Known limitation: existing CosmosDB data retains old prefixes; recommended follow-up is one-time normalization script.

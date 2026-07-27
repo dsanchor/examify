@@ -347,7 +347,151 @@ Updated `EXTRACTION_SYSTEM_PROMPT` to enforce verbatim extraction of questions a
 
 ---
 
+### 17. Strip Leading Option Labels at Ingestion
+**Date**: 2026-07-27  
+**Status**: ✅ Implemented  
+**Decision Maker**: Mike (Backend), requested by dsanchor  
+**File**: `server/src/services/aiService.ts`
+
+#### Problem
+
+Answer options were stored WITH their original label prefixes (`a)`, `b)`, `c)`, `A.`, `1)`, `(a)`, etc.) because the extraction prompt said "EXACTLY as written". The React UI also prepended its own positional letter (`A.`, `B.`, …). This caused:
+
+1. **Duplicate labels**: `A. a) Superación…`
+2. **Shuffle mismatch** (primary symptom): After shuffle, embedded text labels contradicted each other (e.g., `A. b) …` after shuffle of `b) Superación…`)
+
+#### Decision
+
+Fix at **ingestion** — strip embedded labels when options are mapped from AI output. Do NOT change `examService` shuffle logic or frontend letter-prepend logic.
+
+#### Implementation
+
+**New exported helper**: `stripOptionLabel(text: string): string`
+- Regex: `/^(?:\(([A-Za-z]|\d{1,2})\)|([A-Za-z]|\d{1,2})[).\-:])(?!\d)[\s]*/`
+- Handles: `a)`, `A)`, `b.`, `B.`, `(a)`, `(A)`, `a-`, `a:`, `1)`, `1.`, `(1)`, `12)` + uppercase
+- Safe: Bare letter + space passes through; empty result returns original; `(?!\d)` lookahead protects decimals (`3.5`)
+
+**Applied at**:
+- `extractFromPdf`: `options: q.options.map(stripOptionLabel)`
+- `generateAdditionalQuestions`: `options: q.options.map(stripOptionLabel)`
+
+**Prompt updated**: Added rule 7 to `EXTRACTION_SYSTEM_PROMPT` instructing AI to extract option text WITHOUT leading labels.
+
+#### Rationale
+
+- Deterministic regex stripping independent of model behavior
+- Clean plain-text storage; UI position drives visible letter cleanly, including after shuffle
+- No changes to data models, frontend, or exam shuffle logic
+
+#### Known Limitation
+
+Existing CosmosDB data retains old prefixes. Recommended follow-up: one-time normalization script or on-read strip in `testService`.
+
+**Files Modified**: 
+- `server/src/services/aiService.ts`
+
+---
+
+### 18. Install Jest for Server-Side Tests
+**Date**: 2026-07-27  
+**Status**: Proposed  
+**Decision Maker**: Hank (Tester)
+
+#### Context
+
+`server/package.json` declares `"test": "jest"` but `jest`, `ts-jest`, and `@types/jest` are absent from `devDependencies` and not installed. The `stripOptionLabel` test suite is complete and waiting at:
+```
+server/src/services/__tests__/aiService.stripOptionLabel.test.ts
+```
+
+#### Proposed Action
+
+Add to `server/package.json` devDependencies:
+```json
+"@types/jest": "^29",
+"jest": "^29",
+"ts-jest": "^29"
+```
+
+Add jest config at `server/jest.config.ts`:
+```ts
+import type { Config } from 'jest';
+const config: Config = {
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+  testMatch: ['**/__tests__/**/*.test.ts'],
+};
+export default config;
+```
+
+Then `cd server && npm install && npm test` will run the `stripOptionLabel` test suite (19+ cases).
+
+#### Rationale
+
+- Test suite is complete and covers all edge cases
+- Jest is the team's declared test runner — setup is a small install
+- Without this, QA loop for `stripOptionLabel` cannot close
+
+---
+
+### 19. Sources Page — Fetch All Pages Instead of Paginating UI
+**Date**: 2026-07-27  
+**Status**: ✅ Implemented  
+**Decision Maker**: Jesse (Frontend), requested by dsanchor
+
+#### Problem
+
+`SourcesList.tsx` displayed only the first 20 sources. `GET /sources` endpoint is paginated (`PaginatedResponse<Source>`), and the page called `sourcesApi.list()` once (page 1, pageSize 20), then set `setSources(result.items)` — no further pages fetched.
+
+Discrepancy: `ExamCreate.tsx` uses `GET /exams/sources` (unpaginated, returns ALL ready sources). Users could see sources in exam creation that were invisible on Sources page.
+
+#### Decision
+
+Fetch all pages on load using `hasMore` loop — no new pagination UI needed.
+
+#### Rationale
+
+- **"Show Everything" Pattern**: Matches exam creation UX; users expect complete source list on management page
+- **No Pagination UI**: "Load More" button would fragment what should be a complete management list
+- **Loop is Correct**: Works whether there are 21 or 500 sources; scales well
+- **Safety Cap**: 50 iterations (≤1000 sources at pageSize 20) prevents infinite loops
+
+#### Implementation
+
+`client/src/pages/SourcesList.tsx` — `loadSources()` function:
+
+```ts
+const allItems: Source[] = [];
+let page = 1;
+const MAX_PAGES = 50;
+let hasMore = true;
+while (hasMore && page <= MAX_PAGES) {
+  const result = await sourcesApi.list(page, 20);
+  allItems.push(...result.items);
+  hasMore = result.hasMore;
+  page++;
+}
+setSources(allItems);
+```
+
+**Unchanged**: Loading/error/empty states, delete/edit local mutations, TypeScript types.
+
+#### Notes for Team
+
+- **Mike**: No backend changes. `GET /sources` pagination contract used as intended.
+- **Walt**: No architectural change — purely client-side fetch loop.
+- If sources exceed ~1000, consider virtual scrolling or server-side filtering.
+
+**Files Modified**: 
+- `client/src/pages/SourcesList.tsx`
+
+---
+
 ## Governance
+
+- All meaningful changes require team consensus
+- Document architectural decisions here
+- Keep history focused on work, decisions focused on direction
 
 - All meaningful changes require team consensus
 - Document architectural decisions here

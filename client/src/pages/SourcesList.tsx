@@ -25,8 +25,17 @@ export default function SourcesList() {
   const loadSources = async () => {
     try {
       setLoading(true);
-      const result = await sourcesApi.list();
-      setSources(result.items);
+      const allItems: Source[] = [];
+      let page = 1;
+      const MAX_PAGES = 50;
+      let hasMore = true;
+      while (hasMore && page <= MAX_PAGES) {
+        const result = await sourcesApi.list(page, 20);
+        allItems.push(...result.items);
+        hasMore = result.hasMore;
+        page++;
+      }
+      setSources(allItems);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load sources');
     } finally {
